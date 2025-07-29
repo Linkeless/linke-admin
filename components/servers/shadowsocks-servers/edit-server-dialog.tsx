@@ -153,18 +153,15 @@ export function EditServerDialog({ server, onServerUpdated, children }: EditServ
         show: convertBooleanToShow(data.is_show),
       }
 
-      console.log('更新服务器数据:', updateData)
       const response = await shadowsocksServerService.updateServer(server.id, updateData)
       
       if (response.code === 0) {
-        console.log('服务器更新成功:', response.data)
         setOpen(false)
         onServerUpdated()
       } else {
         throw new Error(response.message || '更新失败')
       }
     } catch (error: unknown) {
-      console.error('更新服务器失败:', error)
       const errorMessage = error instanceof Error ? error.message : '未知错误'
       alert(`更新服务器失败: ${errorMessage}`)
     } finally {

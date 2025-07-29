@@ -40,9 +40,7 @@ export class UserService implements IUserService {
       
       const url = `/admin/users?${queryParams.toString()}`
       
-      console.log('发送用户列表请求:', url)
       const response: UserListResponse = await api.get(url)
-      console.log('用户列表响应:', response)
       
       // 验证响应格式并计算总页数
       if (response.code === 0 && response.data && response.data.items) {
@@ -57,7 +55,6 @@ export class UserService implements IUserService {
         throw new Error(`API响应格式错误: ${response.message || '未知错误'}`)
       }
     } catch (error) {
-      console.error('获取用户列表失败:', error)
       throw error
     }
   }
@@ -73,9 +70,7 @@ export class UserService implements IUserService {
       const queryString = queryParams.toString()
       const url = queryString ? `/admin/users/deleted?${queryString}` : '/admin/users/deleted'
       
-      console.log('发送已删除用户列表请求:', url)
       const response: UserListResponse = await api.get(url)
-      console.log('已删除用户列表响应:', response)
       
       if (response.code === 0 && response.data && response.data.items) {
         return response
@@ -83,7 +78,6 @@ export class UserService implements IUserService {
         throw new Error(`API响应格式错误: ${response.message || '未知错误'}`)
       }
     } catch (error) {
-      console.error('获取已删除用户列表失败:', error)
       throw error
     }
   }
@@ -112,9 +106,7 @@ export class UserService implements IUserService {
       }
       
       const url = `/admin/users/search?${queryParams.toString()}`
-      console.log('发送搜索请求:', url)
       const response: UserSearchResponse = await api.get(url)
-      console.log('搜索响应:', response)
       
       // 验证响应格式并计算总页数
       if (response.code === 0 && response.data && response.data.items) {
@@ -129,7 +121,6 @@ export class UserService implements IUserService {
         throw new Error(`搜索API响应格式错误: ${response.message || '未知错误'}`)
       }
     } catch (error) {
-      console.error('搜索用户失败:', error)
       throw error
     }
   }
@@ -182,17 +173,13 @@ export class UserService implements IUserService {
 
   // 更新用户角色（使用专用的PUT端点）
   async updateUserRole(id: number, role: string): Promise<StandardResponse> {
-    console.log('发送角色更新请求:', id, role)
     const response: StandardResponse = await api.put(`/admin/users/${id}/role`, { role })
-    console.log('角色更新响应:', response)
     return response
   }
 
   // 更新用户状态（使用专用的PUT端点）
   async updateUserStatus(id: number, status: string): Promise<StandardResponse> {
-    console.log('发送状态更新请求:', id, status)
     const response: StandardResponse = await api.put(`/admin/users/${id}/status`, { status })
-    console.log('状态更新响应:', response)
     return response
   }
 

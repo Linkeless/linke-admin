@@ -91,18 +91,15 @@ export function EditPlanDialog({ plan, onPlanUpdated }: EditPlanDialogProps) {
 
       const updateData: UpdatePlanRequest = data
 
-      console.log('更新订阅计划数据:', updateData)
       const response = await subscriptionService.updatePlan(plan.id, updateData)
       
       if (response.code === 0) {
-        console.log('订阅计划更新成功:', response.data)
         setOpen(false)
         onPlanUpdated()
       } else {
         throw new Error(response.message || '更新失败')
       }
     } catch (error: unknown) {
-      console.error('更新订阅计划失败:', error)
       const errorMessage = error instanceof Error ? error.message : '未知错误'
       alert(`更新订阅计划失败: ${errorMessage}`)
     } finally {

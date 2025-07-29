@@ -54,7 +54,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           await validateToken()
         }
       } catch (error) {
-        console.error('Auth initialization failed:', error)
         clearTokens()
       } finally {
         setLoading(false)
@@ -113,21 +112,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         redirect_uri: `${window.location.origin}/auth/callback?provider=${provider}`,
       }
       
-      console.log('OAuth request:', urlRequest)
-      
       const response: StandardResponse<AuthorizeURLResponse> = await api.post('/auth/url', urlRequest)
       
-      console.log('OAuth URL response:', response)
-      
       if (response.code === 0 && response.data) {
-        console.log('Redirecting to:', response.data.auth_url)
         // 跳转到第三方授权页面
         window.location.href = response.data.auth_url
       } else {
         throw new ApiError(response.message || 'OAuth登录失败', response.code)
       }
     } catch (error) {
-      console.error('OAuth login error:', error)
       if (error instanceof ApiError) {
         throw error
       }
@@ -171,7 +164,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       await api.post('/auth/logout')
     } catch (error) {
-      console.error('Logout error:', error)
+      // Logout error handled silently
     } finally {
       setUser(null)
       setToken(null)
@@ -192,7 +185,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       return false
     } catch (error) {
-      console.error('Token refresh failed:', error)
       return false
     }
   }

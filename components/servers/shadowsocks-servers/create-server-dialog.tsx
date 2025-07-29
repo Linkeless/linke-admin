@@ -122,11 +122,9 @@ export function CreateServerDialog({ onServerCreated }: CreateServerDialogProps)
         show: convertBooleanToShow(data.is_show),
       }
 
-      console.log('创建服务器数据:', createData)
       const response = await shadowsocksServerService.createServer(createData)
       
       if (response.code === 0) {
-        console.log('服务器创建成功:', response.data)
         form.reset()
         setOpen(false)
         onServerCreated()
@@ -134,7 +132,6 @@ export function CreateServerDialog({ onServerCreated }: CreateServerDialogProps)
         throw new Error(response.message || '创建失败')
       }
     } catch (error: unknown) {
-      console.error('创建服务器失败:', error)
       const errorMessage = error instanceof Error ? error.message : '未知错误'
       alert(`创建服务器失败: ${errorMessage}`)
     } finally {

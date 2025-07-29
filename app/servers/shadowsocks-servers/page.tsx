@@ -35,7 +35,6 @@ export default function ShadowsocksServersPage() {
       // 将页码转换为offset
       const offset = (page - 1) * limit
       
-      console.log('加载服务器列表，page:', page, 'offset:', offset, 'limit:', limit)
       const response = await shadowsocksServerService.getServers({
         offset: offset,
         limit: limit
@@ -49,7 +48,6 @@ export default function ShadowsocksServersPage() {
         setCurrentPage(page)
       }
     } catch (error) {
-      console.error('加载服务器列表失败:', error)
       // 可以添加错误提示
     } finally {
       setLoading(false)
