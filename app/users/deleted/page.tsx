@@ -16,8 +16,7 @@ import { PageHeader } from "@/components/layout/page-header"
 import { userService } from "@/lib/user-service"
 import { UserResponse } from "@/lib/user-types"
 import { createDeletedUsersColumns } from "./columns"
-import { DataTable } from "../data-table"
-import { Pagination } from "@/components/users"
+import { DataTable } from "@/components/ui/data-table"
 
 export default function DeletedUsersPage() {
   const [users, setUsers] = useState<UserResponse[]>([])
@@ -114,18 +113,13 @@ export default function DeletedUsersPage() {
                         onUserRestored: handleUserRestored
                       })} 
                       data={users}
-                      onSelectionChange={handleSelectionChange}
-                    />
-                    
-                    {/* 分页组件 */}
-                    <Pagination
+                      pageCount={totalPages}
                       currentPage={currentPage}
-                      totalPages={totalPages}
+                      pageSize={pageSize}
                       totalItems={totalItems}
-                      itemsPerPage={pageSize}
                       onPageChange={handlePageChange}
                       onPageSizeChange={handlePageSizeChange}
-                      loading={loading}
+                      onSelectionChange={handleSelectionChange}
                     />
                   </>
                 )}

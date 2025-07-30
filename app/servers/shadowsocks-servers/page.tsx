@@ -14,7 +14,7 @@ import { PageHeader } from "@/components/layout/page-header"
 import { shadowsocksServerService } from "@/lib/shadowsocks-service"
 import { ShadowsocksServerResponse } from "@/lib/shadowsocks-types"
 import { createColumns } from "./columns"
-import { DataTable } from "./data-table"
+import { DataTable } from "@/components/ui/data-table"
 import { 
   CreateServerDialog
 } from "@/components/servers/shadowsocks-servers"

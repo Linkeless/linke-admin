@@ -5,6 +5,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
+import { Toaster } from "@/components/ui/sonner";
 import { usePathname } from "next/navigation";
 
 const geistSans = Geist({
@@ -57,6 +58,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <LayoutContent>{children}</LayoutContent>
+        <Toaster />
       </body>
     </html>
   );

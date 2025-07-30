@@ -16,11 +16,10 @@ import { PageHeader } from "@/components/layout/page-header"
 import { userService } from "@/lib/user-service"
 import { UserResponse } from "@/lib/user-types"
 import { createColumns } from "./columns"
-import { DataTable } from "./data-table"
+import { DataTable } from "@/components/ui/data-table"
 import { 
   CreateUserDialog, 
-  BatchActionsToolbar,
-  Pagination 
+  BatchActionsToolbar
 } from "@/components/users"
 
 // 移除未使用的getData函数，现在使用带分页的loadData函数
@@ -86,17 +85,6 @@ export default function UsersPage() {
   }, [])
 
 
-  // 处理分页变更
-  const handlePageChange = useCallback((page: number) => {
-    loadData(page, pageSize)
-  }, [loadData, pageSize])
-
-  // 处理每页显示数量变更
-  const handlePageSizeChange = useCallback((newPageSize: number) => {
-    setPageSize(newPageSize)
-    setCurrentPage(1) // 重置到第一页
-    loadData(1, newPageSize)
-  }, [loadData])
 
   useEffect(() => {
     loadData(1, pageSize)
@@ -146,18 +134,39 @@ export default function UsersPage() {
                         onUserUpdated: handleUserUpdated
                       })} 
                       data={users}
-                      onSelectionChange={handleSelectionChange}
-                    />
-                    
-                    {/* 分页组件 */}
-                    <Pagination
-                      currentPage={currentPage}
-                      totalPages={totalPages}
+                      searchPlaceholder="筛选邮箱..."
+                      searchColumn="email"
+                      columnNames={{
+                        id: 'ID',
+                        email: '用户',
+                        role: '角色',
+                        status: '状态',
+                        providers: '登录方式',
+                        created_at: '注册时间',
+                        last_login_at: '最后登录',
+                      }}
+                      manualPagination={true}
+                      pageCount={totalPages}
                       totalItems={totalItems}
-                      itemsPerPage={pageSize}
-                      onPageChange={handlePageChange}
-                      onPageSizeChange={handlePageSizeChange}
-                      loading={loading}
+                      currentPage={currentPage}
+                      pageSize={pageSize}
+                      initialPagination={{ pageIndex: currentPage - 1, pageSize }}
+                      onPaginationChange={(updater) => {
+                        const newPagination = typeof updater === 'function' 
+                          ? updater({ pageIndex: currentPage - 1, pageSize })
+                          : updater
+                        const newPage = newPagination.pageIndex + 1
+                        const newPageSize = newPagination.pageSize
+                        
+                        if (newPageSize !== pageSize) {
+                          setPageSize(newPageSize)
+                          setCurrentPage(1)
+                          loadData(1, newPageSize)
+                        } else if (newPage !== currentPage) {
+                          loadData(newPage, pageSize)
+                        }
+                      }}
+                      onSelectionChange={handleSelectionChange}
                     />
                   </>
                 )}

@@ -6,6 +6,7 @@ import {
   RotateCcw,
   Trash2,
   Eye,
+  ChevronsUpDown,
 } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -82,7 +83,18 @@ export const createDeletedUsersColumns = (options?: ColumnsOptions): ColumnDef<U
   },
   {
     accessorKey: "id",
-    header: "ID",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="h-auto p-0 font-medium hover:bg-transparent justify-start"
+        >
+          ID
+          <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
+        </Button>
+      )
+    },
     cell: ({ row }) => (
       <div className="font-mono text-sm">
         {row.getValue("id")}
@@ -91,7 +103,18 @@ export const createDeletedUsersColumns = (options?: ColumnsOptions): ColumnDef<U
   },
   {
     accessorKey: "email",
-    header: "用户",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="h-auto p-0 font-medium hover:bg-transparent justify-start"
+        >
+          用户
+          <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
+        </Button>
+      )
+    },
     cell: ({ row }) => {
       const user = row.original
       return (
@@ -116,46 +139,61 @@ export const createDeletedUsersColumns = (options?: ColumnsOptions): ColumnDef<U
   },
   {
     accessorKey: "role",
-    header: "角色",
+    header: () => <div className="text-center">角色</div>,
     cell: ({ row }) => {
       const role = row.getValue("role") as string
       const config = userService.getUserRoleBadgeConfig(role)
       return (
-        <Badge variant="outline" className="opacity-50">
-          {config.label}
-        </Badge>
+        <div className="text-center">
+          <Badge variant="outline" className="opacity-50">
+            {config.label}
+          </Badge>
+        </div>
       )
     },
   },
   {
     id: "providers",
-    header: "登录方式",
+    header: () => <div className="text-center">登录方式</div>,
     cell: ({ row }) => {
       const user = row.original
       const providers = userService.getUserProviders(user)
       
       return (
-        <div className="flex flex-wrap gap-1">
-          {providers.map((provider) => {
-            const config = userService.getProviderBadgeConfig(provider)
-            return (
-              <Badge 
-                key={provider} 
-                variant="outline" 
-                className={`${config.className} text-xs opacity-50`}
-              >
-                <ProviderIcon provider={config.iconType} className="mr-1 h-3 w-3" />
-                {config.label}
-              </Badge>
-            )
-          })}
+        <div className="text-center">
+          <div className="flex flex-wrap gap-1 justify-center">
+            {providers.map((provider) => {
+              const config = userService.getProviderBadgeConfig(provider)
+              return (
+                <Badge 
+                  key={provider} 
+                  variant="outline" 
+                  className={`${config.className} text-xs opacity-50`}
+                >
+                  <ProviderIcon provider={config.iconType} className="mr-1 h-3 w-3" />
+                  {config.label}
+                </Badge>
+              )
+            })}
+          </div>
         </div>
       )
     },
   },
   {
     accessorKey: "created_at",
-    header: "注册时间",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="h-auto p-0 font-medium hover:bg-transparent justify-start"
+        >
+          注册时间
+          <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
+        </Button>
+      )
+    },
     cell: ({ row }) => (
       <div className="text-sm text-muted-foreground">
         {userService.formatDateTime(row.getValue("created_at"))}
@@ -164,7 +202,18 @@ export const createDeletedUsersColumns = (options?: ColumnsOptions): ColumnDef<U
   },
   {
     accessorKey: "deleted_at",
-    header: "删除时间",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="h-auto p-0 font-medium hover:bg-transparent justify-start"
+        >
+          删除时间
+          <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
+        </Button>
+      )
+    },
     cell: ({ row }) => {
       const deletedAt = row.getValue("deleted_at") as string | null
       return (

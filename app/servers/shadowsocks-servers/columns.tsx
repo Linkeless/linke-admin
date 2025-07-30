@@ -1,7 +1,7 @@
 'use client'
 
 import { ColumnDef } from "@tanstack/react-table"
-import { MoreHorizontal, Trash2, Server, Shield, Activity, ChevronsUpDown } from "lucide-react"
+import { MoreHorizontal, Trash2, Server, Shield, Activity, ChevronsUpDown, Eye, Edit } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 // import { Checkbox } from "@/components/ui/checkbox"
@@ -33,7 +33,7 @@ export const createColumns = ({ onServerUpdated }: ColumnsProps): ColumnDef<Shad
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium hover:bg-transparent"
+          className="h-auto p-0 font-medium hover:bg-transparent justify-start"
         >
           服务器名称
           <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
@@ -57,33 +57,37 @@ export const createColumns = ({ onServerUpdated }: ColumnsProps): ColumnDef<Shad
   },
   {
     accessorKey: "cipher",
-    header: "加密方式",
+    header: () => <div className="text-center">加密方式</div>,
     cell: ({ row }) => {
       const server = row.original
       return (
-        <div className="flex items-center gap-2">
-          <Shield className="h-4 w-4 text-muted-foreground" />
-          <Badge variant="outline">
-            {shadowsocksServerService.getCipherDisplayName(server.cipher)}
-          </Badge>
+        <div className="text-center">
+          <div className="flex items-center gap-2 justify-center">
+            <Shield className="h-4 w-4 text-muted-foreground" />
+            <Badge variant="outline">
+              {shadowsocksServerService.getCipherDisplayName(server.cipher)}
+            </Badge>
+          </div>
         </div>
       )
     },
   },
   {
     accessorKey: "show",
-    header: "显示状态",
+    header: () => <div className="text-center">显示状态</div>,
     cell: ({ row }) => {
       const server = row.original
       const isVisible = server.show === 1
       
       return (
-        <Badge 
-          variant={isVisible ? "default" : "secondary"} 
-          className={`text-xs ${isVisible ? 'bg-green-100 text-green-800 border-green-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}
-        >
-          {isVisible ? "显示" : "隐藏"}
-        </Badge>
+        <div className="text-center">
+          <Badge 
+            variant={isVisible ? "default" : "secondary"} 
+            className={`text-xs ${isVisible ? 'bg-green-100 text-green-800 border-green-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}
+          >
+            {isVisible ? "显示" : "隐藏"}
+          </Badge>
+        </div>
       )
     },
   },
@@ -94,7 +98,7 @@ export const createColumns = ({ onServerUpdated }: ColumnsProps): ColumnDef<Shad
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium hover:bg-transparent"
+          className="h-auto p-0 font-medium hover:bg-transparent justify-start"
         >
           倍率
           <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
@@ -104,11 +108,13 @@ export const createColumns = ({ onServerUpdated }: ColumnsProps): ColumnDef<Shad
     cell: ({ row }) => {
       const server = row.original
       return (
-        <div className="flex items-center gap-1">
-          <Activity className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">
-            {shadowsocksServerService.formatRateMultiplier(server.rate)}
-          </span>
+        <div className="text-center">
+          <div className="flex items-center gap-1 justify-center">
+            <Activity className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">
+              {shadowsocksServerService.formatRateMultiplier(server.rate)}
+            </span>
+          </div>
         </div>
       )
     },
@@ -120,7 +126,7 @@ export const createColumns = ({ onServerUpdated }: ColumnsProps): ColumnDef<Shad
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium hover:bg-transparent"
+          className="h-auto p-0 font-medium hover:bg-transparent justify-start"
         >
           排序
           <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
@@ -130,9 +136,11 @@ export const createColumns = ({ onServerUpdated }: ColumnsProps): ColumnDef<Shad
     cell: ({ row }) => {
       const server = row.original
       return (
-        <Badge variant="outline" className="text-xs">
-          {server.sort}
-        </Badge>
+        <div className="text-center">
+          <Badge variant="outline" className="text-xs">
+            {server.sort}
+          </Badge>
+        </div>
       )
     },
   },
@@ -210,7 +218,7 @@ export const createColumns = ({ onServerUpdated }: ColumnsProps): ColumnDef<Shad
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium hover:bg-transparent"
+          className="h-auto p-0 font-medium hover:bg-transparent justify-start"
         >
           创建时间
           <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
@@ -228,67 +236,72 @@ export const createColumns = ({ onServerUpdated }: ColumnsProps): ColumnDef<Shad
   },
   {
     id: "actions",
-    header: "操作",
+    enableHiding: false,
     cell: ({ row }) => {
       const server = row.original
       
-      const handleDelete = async () => {
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">打开菜单</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>操作</DropdownMenuLabel>
+            <DropdownMenuItem
+              onClick={() => navigator.clipboard.writeText(server.id.toString())}
+            >
+              复制服务器ID
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => navigator.clipboard.writeText(shadowsocksServerService.formatServerAddress(server))}
+            >
+              复制服务器地址
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <ServerDetailDialog 
+              server={server}
+              trigger={
+                <div className="cursor-pointer flex items-center px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground">
+                  <Eye className="mr-2 h-4 w-4" />
+                  查看详情
+                </div>
+              }
+            />
+            <EditServerDialog 
+              server={server} 
+              onServerUpdated={onServerUpdated}
+              trigger={
+                <div className="cursor-pointer flex items-center px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground">
+                  <Edit className="mr-2 h-4 w-4" />
+                  编辑服务器
+                </div>
+              }
+            />
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={() => handleDelete(server)}
+              className="text-red-600"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              删除服务器
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )
+      
+      function handleDelete(server: ShadowsocksServerResponse) {
         if (confirm('确定要删除这台服务器吗？此操作不可撤销。')) {
-          try {
-            await shadowsocksServerService.deleteServer(server.id)
-            onServerUpdated()
-          } catch (error) {
-            console.error('删除服务器失败:', error)
-            alert('删除服务器失败，请重试')
-          }
+          shadowsocksServerService.deleteServer(server.id)
+            .then(() => onServerUpdated())
+            .catch((error) => {
+              console.error('删除服务器失败:', error)
+              alert('删除服务器失败，请重试')
+            })
         }
       }
-
-      // 后端API中没有单独的切换显示状态接口，需要通过PUT更新整个服务器
-
-      return (
-        <div className="flex items-center gap-2">
-          {/* 查看详情对话框 */}
-          <ServerDetailDialog server={server} />
-          
-          {/* 编辑对话框 */}
-          <EditServerDialog 
-            server={server} 
-            onServerUpdated={onServerUpdated} 
-          />
-          
-          {/* 更多操作下拉菜单 */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">打开菜单</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>操作</DropdownMenuLabel>
-              <DropdownMenuItem
-                onClick={() => navigator.clipboard.writeText(server.id.toString())}
-              >
-                复制服务器ID
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => navigator.clipboard.writeText(shadowsocksServerService.formatServerAddress(server))}
-              >
-                复制服务器地址
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={handleDelete}
-                className="text-red-600"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                删除服务器
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      )
     },
   },
 ]

@@ -1,7 +1,7 @@
 'use client'
 
 import { ColumnDef } from "@tanstack/react-table"
-import { MoreHorizontal, Trash2, Package, DollarSign, Calendar, ChevronsUpDown } from "lucide-react"
+import { MoreHorizontal, Trash2, Package, DollarSign, Calendar, ChevronsUpDown, Eye, Edit } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -32,7 +32,7 @@ export const createPlanColumns = ({ onPlanUpdated }: ColumnsProps): ColumnDef<Su
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium hover:bg-transparent"
+          className="h-auto p-0 font-medium hover:bg-transparent justify-start"
         >
           计划名称
           <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
@@ -63,7 +63,7 @@ export const createPlanColumns = ({ onPlanUpdated }: ColumnsProps): ColumnDef<Su
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium hover:bg-transparent"
+          className="h-auto p-0 font-medium hover:bg-transparent justify-start"
         >
           价格
           <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
@@ -89,78 +89,100 @@ export const createPlanColumns = ({ onPlanUpdated }: ColumnsProps): ColumnDef<Su
   },
   {
     accessorKey: "status",
-    header: "状态",
+    header: () => <div className="text-center">状态</div>,
     cell: ({ row }) => {
       const plan = row.original
       const isActive = plan.status === 'active'
       
       return (
-        <Badge 
-          variant={isActive ? "default" : "secondary"} 
-          className={`text-xs ${isActive ? 'bg-green-100 text-green-800 border-green-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}
-        >
-          {isActive ? "活跃" : "停用"}
-        </Badge>
+        <div className="text-center">
+          <Badge 
+            variant={isActive ? "default" : "secondary"} 
+            className={`text-xs ${isActive ? 'bg-green-100 text-green-800 border-green-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}
+          >
+            {isActive ? "活跃" : "停用"}
+          </Badge>
+        </div>
       )
     },
   },
   {
     accessorKey: "duration_days",
-    header: "时长",
+    header: () => <div className="text-center">时长</div>,
     cell: ({ row }) => {
       const plan = row.original
       return (
-        <div className="flex items-center gap-1">
-          <Calendar className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm">
-            {plan.duration_days}天
-          </span>
+        <div className="text-center">
+          <div className="flex items-center gap-1 justify-center">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm">
+              {plan.duration_days}天
+            </span>
+          </div>
         </div>
       )
     },
   },
   {
     accessorKey: "data_limit_gb",
-    header: "流量限制",
+    header: () => <div className="text-center">流量限制</div>,
     cell: ({ row }) => {
       const plan = row.original
       if (!plan.data_limit_gb) {
-        return <span className="text-sm text-muted-foreground">无限制</span>
+        return (
+          <div className="text-center">
+            <span className="text-sm text-muted-foreground">无限制</span>
+          </div>
+        )
       }
       return (
-        <Badge variant="outline" className="text-xs">
-          {plan.data_limit_gb}GB
-        </Badge>
+        <div className="text-center">
+          <Badge variant="outline" className="text-xs">
+            {plan.data_limit_gb}GB
+          </Badge>
+        </div>
       )
     },
   },
   {
     accessorKey: "device_limit",
-    header: "设备限制",
+    header: () => <div className="text-center">设备限制</div>,
     cell: ({ row }) => {
       const plan = row.original
       if (!plan.device_limit) {
-        return <span className="text-sm text-muted-foreground">无限制</span>
+        return (
+          <div className="text-center">
+            <span className="text-sm text-muted-foreground">无限制</span>
+          </div>
+        )
       }
       return (
-        <Badge variant="outline" className="text-xs">
-          {plan.device_limit}台
-        </Badge>
+        <div className="text-center">
+          <Badge variant="outline" className="text-xs">
+            {plan.device_limit}台
+          </Badge>
+        </div>
       )
     },
   },
   {
     accessorKey: "trial_days",
-    header: "试用天数",
+    header: () => <div className="text-center">试用天数</div>,
     cell: ({ row }) => {
       const plan = row.original
       if (!plan.trial_days) {
-        return <span className="text-sm text-muted-foreground">-</span>
+        return (
+          <div className="text-center">
+            <span className="text-sm text-muted-foreground">-</span>
+          </div>
+        )
       }
       return (
-        <Badge variant="secondary" className="text-xs text-blue-600 border-blue-200">
-          {plan.trial_days}天
-        </Badge>
+        <div className="text-center">
+          <Badge variant="secondary" className="text-xs text-blue-600 border-blue-200">
+            {plan.trial_days}天
+          </Badge>
+        </div>
       )
     },
   },
@@ -171,7 +193,7 @@ export const createPlanColumns = ({ onPlanUpdated }: ColumnsProps): ColumnDef<Su
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium hover:bg-transparent"
+          className="h-auto p-0 font-medium hover:bg-transparent justify-start"
         >
           创建时间
           <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
@@ -189,65 +211,72 @@ export const createPlanColumns = ({ onPlanUpdated }: ColumnsProps): ColumnDef<Su
   },
   {
     id: "actions",
-    header: "操作",
+    enableHiding: false,
     cell: ({ row }) => {
       const plan = row.original
       
-      const handleDelete = async () => {
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">打开菜单</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>操作</DropdownMenuLabel>
+            <DropdownMenuItem
+              onClick={() => navigator.clipboard.writeText(plan.id.toString())}
+            >
+              复制计划ID
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => navigator.clipboard.writeText(plan.name)}
+            >
+              复制计划名称
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <PlanDetailDialog 
+              plan={plan}
+              trigger={
+                <div className="cursor-pointer flex items-center px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground">
+                  <Eye className="mr-2 h-4 w-4" />
+                  查看详情
+                </div>
+              }
+            />
+            <EditPlanDialog 
+              plan={plan} 
+              onPlanUpdated={onPlanUpdated}
+              trigger={
+                <div className="cursor-pointer flex items-center px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground">
+                  <Edit className="mr-2 h-4 w-4" />
+                  编辑计划
+                </div>
+              }
+            />
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={() => handleDelete(plan)}
+              className="text-red-600"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              删除计划
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )
+      
+      function handleDelete(plan: SubscriptionPlan) {
         if (confirm('确定要删除这个订阅计划吗？此操作不可撤销。')) {
-          try {
-            await subscriptionService.deletePlan(plan.id)
-            onPlanUpdated()
-          } catch (error) {
-            console.error('删除计划失败:', error)
-            alert('删除计划失败，请重试')
-          }
+          subscriptionService.deletePlan(plan.id)
+            .then(() => onPlanUpdated())
+            .catch((error) => {
+              console.error('删除计划失败:', error)
+              alert('删除计划失败，请重试')
+            })
         }
       }
-
-      return (
-        <div className="flex items-center gap-2">
-          {/* 查看详情对话框 */}
-          <PlanDetailDialog plan={plan} />
-          
-          {/* 编辑对话框 */}
-          <EditPlanDialog 
-            plan={plan} 
-            onPlanUpdated={onPlanUpdated} 
-          />
-          
-          {/* 更多操作下拉菜单 */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">打开菜单</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>操作</DropdownMenuLabel>
-              <DropdownMenuItem
-                onClick={() => navigator.clipboard.writeText(plan.id.toString())}
-              >
-                复制计划ID
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => navigator.clipboard.writeText(plan.name)}
-              >
-                复制计划名称
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={handleDelete}
-                className="text-red-600"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                删除计划
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      )
     },
   },
 ]

@@ -1,7 +1,7 @@
 'use client'
 
 import { ColumnDef } from "@tanstack/react-table"
-import { MoreHorizontal, Trash2, Users, Crown, Activity, ChevronsUpDown, RotateCcw, Pause } from "lucide-react"
+import { MoreHorizontal, Trash2, Users, Crown, Activity, ChevronsUpDown, RotateCcw, Pause, Eye, Edit } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -32,7 +32,7 @@ export const createUserSubscriptionColumns = ({ onSubscriptionUpdated }: Columns
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium hover:bg-transparent"
+          className="h-auto p-0 font-medium hover:bg-transparent justify-start"
         >
           用户信息
           <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
@@ -57,22 +57,24 @@ export const createUserSubscriptionColumns = ({ onSubscriptionUpdated }: Columns
   },
   {
     accessorKey: "subscription_plan",
-    header: "订阅计划",
+    header: () => <div className="text-center">订阅计划</div>,
     cell: ({ row }) => {
       const subscription = row.original
       const plan = subscription.subscription_plan
       return (
-        <div className="flex items-center gap-2">
-          <Crown className="h-4 w-4 text-muted-foreground" />
-          <div className="flex flex-col">
-            <Badge variant="outline">
-              {plan?.name || `计划${subscription.subscription_plan_id}`}
-            </Badge>
-            {plan && (
-              <span className="text-sm text-muted-foreground mt-1">
-                {plan.currency} {plan.price}/{plan.billing_cycle}
-              </span>
-            )}
+        <div className="text-center">
+          <div className="flex items-center gap-2 justify-center">
+            <Crown className="h-4 w-4 text-muted-foreground" />
+            <div className="flex flex-col">
+              <Badge variant="outline">
+                {plan?.name || `计划${subscription.subscription_plan_id}`}
+              </Badge>
+              {plan && (
+                <span className="text-sm text-muted-foreground mt-1">
+                  {plan.currency} {plan.price}/{plan.billing_cycle}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       )
@@ -80,18 +82,20 @@ export const createUserSubscriptionColumns = ({ onSubscriptionUpdated }: Columns
   },
   {
     accessorKey: "status",
-    header: "状态",
+    header: () => <div className="text-center">状态</div>,
     cell: ({ row }) => {
       const subscription = row.original
       const statusConfig = SUBSCRIPTION_STATUS_CONFIG[subscription.status]
       
       return (
-        <Badge 
-          variant={statusConfig?.variant || "secondary"} 
-          className="text-xs"
-        >
-          {statusConfig?.text || subscription.status}
-        </Badge>
+        <div className="text-center">
+          <Badge 
+            variant={statusConfig?.variant || "secondary"} 
+            className="text-xs"
+          >
+            {statusConfig?.text || subscription.status}
+          </Badge>
+        </div>
       )
     },
   },
@@ -102,7 +106,7 @@ export const createUserSubscriptionColumns = ({ onSubscriptionUpdated }: Columns
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium hover:bg-transparent"
+          className="h-auto p-0 font-medium hover:bg-transparent justify-start"
         >
           当前周期
           <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
@@ -125,17 +129,19 @@ export const createUserSubscriptionColumns = ({ onSubscriptionUpdated }: Columns
   },
   {
     accessorKey: "auto_renew",
-    header: "自动续费",
+    header: () => <div className="text-center">自动续费</div>,
     cell: ({ row }) => {
       const subscription = row.original
       
       return (
-        <Badge 
-          variant={subscription.auto_renew ? "default" : "secondary"} 
-          className={`text-xs ${subscription.auto_renew ? 'bg-green-100 text-green-800 border-green-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}
-        >
-          {subscription.auto_renew ? "已开启" : "已关闭"}
-        </Badge>
+        <div className="text-center">
+          <Badge 
+            variant={subscription.auto_renew ? "default" : "secondary"} 
+            className={`text-xs ${subscription.auto_renew ? 'bg-green-100 text-green-800 border-green-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}
+          >
+            {subscription.auto_renew ? "已开启" : "已关闭"}
+          </Badge>
+        </div>
       )
     },
   },
@@ -146,7 +152,7 @@ export const createUserSubscriptionColumns = ({ onSubscriptionUpdated }: Columns
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium hover:bg-transparent"
+          className="h-auto p-0 font-medium hover:bg-transparent justify-start"
         >
           剩余天数
           <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
@@ -167,16 +173,19 @@ export const createUserSubscriptionColumns = ({ onSubscriptionUpdated }: Columns
   },
   {
     accessorKey: "is_in_trial",
-    header: "试用状态",
+    header: () => <div className="text-center">试用状态</div>,
     cell: ({ row }) => {
       const subscription = row.original
-      if (!subscription.is_in_trial) {
-        return <span className="text-sm text-muted-foreground">-</span>
-      }
       return (
-        <Badge variant="outline" className="text-xs text-blue-600 border-blue-200">
-          试用中
-        </Badge>
+        <div className="text-center">
+          {!subscription.is_in_trial ? (
+            <span className="text-sm text-muted-foreground">-</span>
+          ) : (
+            <Badge variant="outline" className="text-xs text-blue-600 border-blue-200">
+              试用中
+            </Badge>
+          )}
+        </div>
       )
     },
   },
@@ -187,7 +196,7 @@ export const createUserSubscriptionColumns = ({ onSubscriptionUpdated }: Columns
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium hover:bg-transparent"
+          className="h-auto p-0 font-medium hover:bg-transparent justify-start"
         >
           创建时间
           <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
@@ -205,7 +214,7 @@ export const createUserSubscriptionColumns = ({ onSubscriptionUpdated }: Columns
   },
   {
     id: "actions",
-    header: "操作",
+    enableHiding: false,
     cell: ({ row }) => {
       const subscription = row.original
       
@@ -254,66 +263,74 @@ export const createUserSubscriptionColumns = ({ onSubscriptionUpdated }: Columns
       }
 
       return (
-        <div className="flex items-center gap-2">
-          {/* 查看详情对话框 */}
-          <UserSubscriptionDetailDialog subscription={subscription} />
-          
-          {/* 编辑对话框 */}
-          <EditUserSubscriptionDialog 
-            subscription={subscription} 
-            onSubscriptionUpdated={onSubscriptionUpdated} 
-          />
-          
-          {/* 更多操作下拉菜单 */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">打开菜单</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>操作</DropdownMenuLabel>
-              <DropdownMenuItem
-                onClick={() => navigator.clipboard.writeText(subscription.id.toString())}
-              >
-                复制订阅ID
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">打开菜单</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>操作</DropdownMenuLabel>
+            <DropdownMenuItem
+              onClick={() => navigator.clipboard.writeText(subscription.id.toString())}
+            >
+              复制订阅ID
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => navigator.clipboard.writeText(subscription.uuid)}
+            >
+              复制UUID
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <UserSubscriptionDetailDialog 
+              subscription={subscription}
+              trigger={
+                <div className="cursor-pointer flex items-center px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground">
+                  <Eye className="mr-2 h-4 w-4" />
+                  查看详情
+                </div>
+              }
+            />
+            <EditUserSubscriptionDialog 
+              subscription={subscription} 
+              onSubscriptionUpdated={onSubscriptionUpdated}
+              trigger={
+                <div className="cursor-pointer flex items-center px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground">
+                  <Edit className="mr-2 h-4 w-4" />
+                  编辑订阅
+                </div>
+              }
+            />
+            <DropdownMenuSeparator />
+            {subscription.status === 'active' && (
+              <DropdownMenuItem onClick={handleCancel}>
+                <Pause className="mr-2 h-4 w-4" />
+                取消订阅
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => navigator.clipboard.writeText(subscription.uuid)}
-              >
-                复制UUID
+            )}
+            {(subscription.status === 'cancelled' || subscription.status === 'expired') && (
+              <DropdownMenuItem onClick={handleReactivate}>
+                <RotateCcw className="mr-2 h-4 w-4" />
+                重新激活
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              {subscription.status === 'active' && (
-                <DropdownMenuItem onClick={handleCancel}>
-                  <Pause className="mr-2 h-4 w-4" />
-                  取消订阅
-                </DropdownMenuItem>
-              )}
-              {(subscription.status === 'cancelled' || subscription.status === 'expired') && (
-                <DropdownMenuItem onClick={handleReactivate}>
-                  <RotateCcw className="mr-2 h-4 w-4" />
-                  重新激活
-                </DropdownMenuItem>
-              )}
-              {subscription.status === 'active' && (
-                <DropdownMenuItem onClick={handleRenew}>
-                  <RotateCcw className="mr-2 h-4 w-4" />
-                  立即续费
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={handleDelete}
-                className="text-red-600"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                删除订阅
+            )}
+            {subscription.status === 'active' && (
+              <DropdownMenuItem onClick={handleRenew}>
+                <RotateCcw className="mr-2 h-4 w-4" />
+                立即续费
               </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={handleDelete}
+              className="text-red-600"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              删除订阅
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       )
     },
   },

@@ -9,6 +9,596 @@
     "host": "localhost:8080",
     "basePath": "/api/v1",
     "paths": {
+        "/admin/coupons": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a paginated list of all coupons with filtering options",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin - Coupons"
+                ],
+                "summary": "[Admin] List all coupons",
+                "parameters": [
+                    {
+                        "enum": [
+                            "active",
+                            "inactive",
+                            "expired"
+                        ],
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "percentage",
+                            "fixed_amount"
+                        ],
+                        "type": "string",
+                        "description": "Filter by type",
+                        "name": "type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Filter by public visibility",
+                        "name": "is_public",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Number of items per page (1-100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "minimum": 0,
+                        "type": "integer",
+                        "description": "Number of items to skip",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.PaginatedResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/model.CouponResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new coupon with specified parameters",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin - Coupons"
+                ],
+                "summary": "[Admin] Create coupon",
+                "parameters": [
+                    {
+                        "description": "Coupon creation data",
+                        "name": "create_request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.CreateCouponRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.CouponResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/coupons/code/{code}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get coupon information by coupon code",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin - Coupons"
+                ],
+                "summary": "[Admin] Get coupon by code",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Coupon Code",
+                        "name": "code",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.CouponResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/coupons/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get detailed information about a specific coupon",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin - Coupons"
+                ],
+                "summary": "[Admin] Get coupon details",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Coupon ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.CouponResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an existing coupon's information",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin - Coupons"
+                ],
+                "summary": "[Admin] Update coupon",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Coupon ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Coupon update data",
+                        "name": "update_request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.UpdateCouponRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.CouponResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Soft delete a coupon (it will no longer be usable)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin - Coupons"
+                ],
+                "summary": "[Admin] Delete coupon",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Coupon ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/coupons/{id}/usages": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a paginated list of coupon usage records",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin - Coupons"
+                ],
+                "summary": "[Admin] Get coupon usage history",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Coupon ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Number of items per page (1-100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "minimum": 0,
+                        "type": "integer",
+                        "description": "Number of items to skip",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.PaginatedResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/model.CouponUsageResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/admin/invite-codes": {
             "get": {
                 "security": [
@@ -6639,182 +7229,6 @@
                 }
             }
         },
-        "/api/v1/server/UniProxy/config": {
-            "get": {
-                "description": "Get configuration for UniProxy server based on node_id and node_type",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Server-API"
-                ],
-                "summary": "Get UniProxy Server Config",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Node ID",
-                        "name": "node_id",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Node Type (shadowsocks)",
-                        "name": "node_type",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Authentication Token",
-                        "name": "token",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/response.StandardResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/handler.UniProxyConfigResponse"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/response.StandardResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/response.StandardResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/response.StandardResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/server/UniProxy/health": {
-            "get": {
-                "description": "Health check endpoint for server API",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Server-API"
-                ],
-                "summary": "Server API Health Check",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/response.StandardResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object",
-                                            "additionalProperties": true
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/server/UniProxy/user": {
-            "get": {
-                "description": "Get users with active subscriptions that have access to the specified shadowsocks server",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Server-API"
-                ],
-                "summary": "Get UniProxy Users",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Node ID",
-                        "name": "node_id",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Node Type (shadowsocks)",
-                        "name": "node_type",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Authentication Token",
-                        "name": "token",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.UniProxyUsersResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/response.StandardResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/response.StandardResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/response.StandardResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/auth/change-password": {
             "post": {
                 "security": [
@@ -8300,6 +8714,118 @@
                 }
             }
         },
+        "/server/UniProxy/config": {
+            "get": {
+                "description": "Get configuration for UniProxy server based on node_id and node_type",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Server-API"
+                ],
+                "summary": "Get UniProxy Server Config",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Node ID",
+                        "name": "node_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Node Type (shadowsocks)",
+                        "name": "node_type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Authentication Token",
+                        "name": "token",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/handler.UniProxyConfigResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/server/UniProxy/health": {
+            "get": {
+                "description": "Health check endpoint for server API",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Server-API"
+                ],
+                "summary": "Server API Health Check",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/server/UniProxy/push": {
             "post": {
                 "description": "Receive and log data push from UniProxy nodes (shadowsocks, etc.)",
@@ -8375,6 +8901,70 @@
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/response.InternalServerErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/server/UniProxy/user": {
+            "get": {
+                "description": "Get users with active subscriptions that have access to the specified shadowsocks server. Returns all valid subscriptions, including multiple subscriptions for the same user.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Server-API"
+                ],
+                "summary": "Get UniProxy Users",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Node ID",
+                        "name": "node_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Node Type (shadowsocks)",
+                        "name": "node_type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Authentication Token",
+                        "name": "token",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.UniProxyUsersResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
                         }
                     }
                 }
@@ -8868,6 +9458,84 @@
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/response.InternalServerErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/coupons/usages": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a paginated list of current user's coupon usage records",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User - Coupons"
+                ],
+                "summary": "[User] Get my coupon usage history",
+                "parameters": [
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Number of items per page (1-100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "minimum": 0,
+                        "type": "integer",
+                        "description": "Number of items to skip",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.PaginatedResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/model.CouponUsageResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.StandardResponse"
                         }
                     }
                 }
@@ -9623,7 +10291,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Purchase a subscription plan",
+                "description": "Create subscription order with payment - returns payment URL for completion",
                 "consumes": [
                     "application/json"
                 ],
@@ -9657,7 +10325,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/model.UserSubscriptionResponse"
+                                            "$ref": "#/definitions/service.CreateSubscriptionOrderResponse"
                                         }
                                     }
                                 }
@@ -11292,7 +11960,47 @@
     },
     "definitions": {
         "admin.BulkUpdateRequest": {
-            "type": "object"
+            "type": "object",
+            "required": [
+                "admin_confirmed",
+                "operation",
+                "order_ids"
+            ],
+            "properties": {
+                "admin_confirmed": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "notes": {
+                    "type": "string",
+                    "example": "Bulk operation by admin"
+                },
+                "operation": {
+                    "type": "string",
+                    "enum": [
+                        "cancel",
+                        "refund",
+                        "export"
+                    ],
+                    "example": "cancel"
+                },
+                "order_ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "integer"
+                    },
+                    "example": [
+                        1,
+                        2,
+                        3
+                    ]
+                },
+                "reason": {
+                    "type": "string",
+                    "example": "Bulk cancellation"
+                }
+            }
         },
         "admin.CreateInvoiceFromOrderRequest": {
             "type": "object",
@@ -11653,10 +12361,14 @@
             "type": "object",
             "properties": {
                 "id": {
+                    "description": "Subscription ID",
                     "type": "integer"
                 },
-                "speed_limit": {},
+                "speed_limit": {
+                    "description": "Speed limit (null for unlimited)"
+                },
                 "uuid": {
+                    "description": "Subscription UUID",
                     "type": "string"
                 }
             }
@@ -11763,6 +12475,80 @@
                     "description": "Discount value",
                     "type": "number",
                     "example": 20
+                }
+            }
+        },
+        "model.CouponUsageResponse": {
+            "type": "object",
+            "properties": {
+                "coupon": {
+                    "description": "Related data",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.CouponResponse"
+                        }
+                    ]
+                },
+                "coupon_id": {
+                    "description": "Coupon ID",
+                    "type": "integer",
+                    "example": 1
+                },
+                "created_at": {
+                    "description": "Creation time",
+                    "type": "string",
+                    "example": "2024-01-01T00:00:00Z"
+                },
+                "currency": {
+                    "description": "Currency",
+                    "type": "string",
+                    "example": "USD"
+                },
+                "discount_amount": {
+                    "description": "Discount amount",
+                    "type": "number",
+                    "example": 5.99
+                },
+                "id": {
+                    "description": "Usage ID",
+                    "type": "integer",
+                    "example": 1
+                },
+                "order_amount": {
+                    "description": "Original order amount",
+                    "type": "number",
+                    "example": 29.99
+                },
+                "subscription_order": {
+                    "description": "Order info",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.SubscriptionOrderResponse"
+                        }
+                    ]
+                },
+                "subscription_order_id": {
+                    "description": "Order ID",
+                    "type": "integer",
+                    "example": 1
+                },
+                "updated_at": {
+                    "description": "Update time",
+                    "type": "string",
+                    "example": "2024-01-01T00:00:00Z"
+                },
+                "user": {
+                    "description": "User info",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.UserResponse"
+                        }
+                    ]
+                },
+                "user_id": {
+                    "description": "User ID",
+                    "type": "integer",
+                    "example": 1
                 }
             }
         },
@@ -12141,6 +12927,55 @@
                 }
             }
         },
+        "model.Method": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "Method code (alipay, wechat, usdt, etc.)",
+                    "type": "string"
+                },
+                "description": {
+                    "description": "Description",
+                    "type": "string"
+                },
+                "environment": {
+                    "description": "production, sandbox, test",
+                    "type": "string"
+                },
+                "fee_max": {
+                    "description": "Maximum fee",
+                    "type": "number"
+                },
+                "fee_min": {
+                    "description": "Minimum fee",
+                    "type": "number"
+                },
+                "fee_type": {
+                    "description": "none, fixed, percentage",
+                    "type": "string"
+                },
+                "fee_value": {
+                    "description": "Fee value",
+                    "type": "number"
+                },
+                "icon": {
+                    "description": "Icon URL",
+                    "type": "string"
+                },
+                "is_enabled": {
+                    "description": "Whether enabled",
+                    "type": "boolean"
+                },
+                "name": {
+                    "description": "Display name",
+                    "type": "string"
+                },
+                "sort_order": {
+                    "description": "Sort order",
+                    "type": "integer"
+                }
+            }
+        },
         "model.PaymentConfigResponse": {
             "type": "object",
             "properties": {
@@ -12149,45 +12984,15 @@
                     "type": "string",
                     "example": "2024-01-01T00:00:00Z"
                 },
-                "description": {
-                    "description": "Description",
-                    "type": "string",
-                    "example": "支付宝扫码支付"
-                },
-                "environment": {
-                    "description": "Environment",
-                    "type": "string",
-                    "example": "production"
-                },
-                "fee_max": {
-                    "description": "Maximum fee",
+                "fixed_fee": {
+                    "description": "Fixed fee",
                     "type": "number",
-                    "example": 10
-                },
-                "fee_min": {
-                    "description": "Minimum fee",
-                    "type": "number",
-                    "example": 0.01
-                },
-                "fee_type": {
-                    "description": "Fee type",
-                    "type": "string",
-                    "example": "percentage"
-                },
-                "fee_value": {
-                    "description": "Fee value",
-                    "type": "number",
-                    "example": 0.6
+                    "example": 0
                 },
                 "gateway": {
                     "description": "Payment gateway",
                     "type": "string",
                     "example": "epay"
-                },
-                "icon": {
-                    "description": "Icon URL",
-                    "type": "string",
-                    "example": "https://example.com/icon.png"
                 },
                 "id": {
                     "description": "Config ID",
@@ -12202,12 +13007,14 @@
                 "max_amount": {
                     "description": "Maximum amount",
                     "type": "number",
-                    "example": 999999.99
+                    "example": 99999.99
                 },
-                "method": {
-                    "description": "Payment method",
-                    "type": "string",
-                    "example": "alipay"
+                "methods": {
+                    "description": "Payment methods",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.Method"
+                    }
                 },
                 "min_amount": {
                     "description": "Minimum amount",
@@ -12217,7 +13024,12 @@
                 "name": {
                     "description": "Display name",
                     "type": "string",
-                    "example": "支付宝"
+                    "example": "EPay Gateway"
+                },
+                "percentage_fee": {
+                    "description": "Percentage fee",
+                    "type": "number",
+                    "example": 0.6
                 },
                 "sort_order": {
                     "description": "Sort order",
@@ -12965,12 +13777,12 @@
                     "example": 1
                 },
                 "port": {
-                    "type": "string",
-                    "example": "443"
+                    "type": "integer",
+                    "example": 443
                 },
                 "rate": {
-                    "type": "string",
-                    "example": "1.0"
+                    "type": "number",
+                    "example": 1
                 },
                 "route_id": {
                     "type": "string",
@@ -13312,37 +14124,47 @@
             "type": "object",
             "properties": {
                 "attachments": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "[{\"name\":\"screenshot.png\",\"url\":\"/uploads/screenshot.png\"}]"
                 },
                 "content": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Thank you for contacting support. We will review your issue."
                 },
                 "created_at": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2024-01-01T10:30:00Z"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 1
                 },
                 "is_internal": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "example": false
                 },
                 "message_type": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "admin"
                 },
                 "metadata": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "{\"priority\": \"normal\"}"
                 },
                 "ticket_id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 1
                 },
                 "updated_at": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2024-01-01T10:30:00Z"
                 },
                 "user": {
                     "$ref": "#/definitions/model.UserResponse"
                 },
                 "user_id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 2
                 }
             }
         },
@@ -13350,25 +14172,32 @@
             "type": "object",
             "properties": {
                 "attachments": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "[{\"name\":\"screenshot.png\",\"url\":\"/uploads/screenshot.png\"}]"
                 },
                 "content": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Thank you for contacting support. We will review your issue."
                 },
                 "created_at": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2024-01-01T10:30:00Z"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 1
                 },
                 "message_type": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "admin"
                 },
                 "ticket_id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 1
                 },
                 "updated_at": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2024-01-01T10:30:00Z"
                 }
             }
         },
@@ -13376,34 +14205,43 @@
             "type": "object",
             "properties": {
                 "assigned_at": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2024-01-01T10:00:00Z"
                 },
                 "assigned_to": {
                     "$ref": "#/definitions/model.UserResponse"
                 },
                 "assigned_to_id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 2
                 },
                 "category": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "subscription"
                 },
                 "closed_at": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2024-01-02T16:00:00Z"
                 },
                 "created_at": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2024-01-01T09:00:00Z"
                 },
                 "description": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "I am unable to access my premium subscription features"
                 },
                 "first_response_at": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2024-01-01T10:30:00Z"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 1
                 },
                 "last_response_at": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2024-01-02T14:00:00Z"
                 },
                 "messages": {
                     "type": "array",
@@ -13412,43 +14250,54 @@
                     }
                 },
                 "metadata": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "{\"priority_escalated\": true}"
                 },
                 "priority": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "normal"
                 },
                 "resolution": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Issue resolved by updating subscription settings"
                 },
                 "resolved_at": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2024-01-02T15:30:00Z"
                 },
                 "resolved_by": {
                     "$ref": "#/definitions/model.UserResponse"
                 },
                 "resolved_by_id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 2
                 },
                 "status": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "open"
                 },
                 "tags": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "urgent,subscription"
                 },
                 "ticket_no": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "TKT-20240101-001"
                 },
                 "title": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Unable to access my subscription"
                 },
                 "updated_at": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2024-01-02T16:00:00Z"
                 },
                 "user": {
                     "$ref": "#/definitions/model.UserResponse"
                 },
                 "user_id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 1
                 }
             }
         },
@@ -13456,25 +14305,32 @@
             "type": "object",
             "properties": {
                 "category": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "subscription"
                 },
                 "closed_at": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2024-01-02T16:00:00Z"
                 },
                 "created_at": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2024-01-01T09:00:00Z"
                 },
                 "description": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "I am unable to access my premium subscription features"
                 },
                 "first_response_at": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2024-01-01T10:30:00Z"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 1
                 },
                 "last_response_at": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2024-01-02T14:00:00Z"
                 },
                 "messages": {
                     "type": "array",
@@ -13483,22 +14339,28 @@
                     }
                 },
                 "priority": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "normal"
                 },
                 "resolution": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Issue resolved by updating subscription settings"
                 },
                 "status": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "open"
                 },
                 "ticket_no": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "TKT-20240101-001"
                 },
                 "title": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Unable to access my subscription"
                 },
                 "updated_at": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2024-01-02T16:00:00Z"
                 }
             }
         },
@@ -14088,6 +14950,82 @@
                 }
             }
         },
+        "service.CreateCouponRequest": {
+            "type": "object",
+            "required": [
+                "code",
+                "name",
+                "type",
+                "value"
+            ],
+            "properties": {
+                "applicable_plans": {
+                    "type": "string",
+                    "example": "[1,2,3]"
+                },
+                "code": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 3,
+                    "example": "SAVE20"
+                },
+                "currency": {
+                    "type": "string",
+                    "example": "USD"
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "example": "Save 20% on any subscription plan"
+                },
+                "is_public": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "max_uses": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "example": 100
+                },
+                "max_uses_per_user": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 1
+                },
+                "min_order_amount": {
+                    "type": "number",
+                    "minimum": 0,
+                    "example": 10
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1,
+                    "example": "20% Off All Plans"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "percentage",
+                        "fixed_amount"
+                    ],
+                    "example": "percentage"
+                },
+                "valid_from": {
+                    "type": "string",
+                    "example": "2024-01-01T00:00:00Z"
+                },
+                "valid_until": {
+                    "type": "string",
+                    "example": "2024-12-31T23:59:59Z"
+                },
+                "value": {
+                    "type": "number",
+                    "minimum": 0,
+                    "example": 20
+                }
+            }
+        },
         "service.CreateInviteCodeRequest": {
             "type": "object",
             "properties": {
@@ -14219,7 +15157,6 @@
             "required": [
                 "config",
                 "gateway",
-                "method",
                 "name"
             ],
             "properties": {
@@ -14227,37 +15164,13 @@
                     "type": "string",
                     "example": "{\"api_url\":\"...\"}"
                 },
-                "description": {
-                    "type": "string",
-                    "example": "支付宝扫码支付"
-                },
-                "environment": {
-                    "type": "string",
-                    "example": "production"
-                },
-                "fee_max": {
+                "fixed_fee": {
                     "type": "number",
-                    "example": 10
-                },
-                "fee_min": {
-                    "type": "number",
-                    "example": 0.01
-                },
-                "fee_type": {
-                    "type": "string",
-                    "example": "percentage"
-                },
-                "fee_value": {
-                    "type": "number",
-                    "example": 0.6
+                    "example": 0
                 },
                 "gateway": {
                     "type": "string",
                     "example": "epay"
-                },
-                "icon": {
-                    "type": "string",
-                    "example": "https://example.com/alipay.png"
                 },
                 "is_enabled": {
                     "type": "boolean",
@@ -14265,11 +15178,13 @@
                 },
                 "max_amount": {
                     "type": "number",
-                    "example": 999999.99
+                    "example": 99999.99
                 },
-                "method": {
-                    "type": "string",
-                    "example": "alipay"
+                "methods": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.Method"
+                    }
                 },
                 "min_amount": {
                     "type": "number",
@@ -14277,7 +15192,11 @@
                 },
                 "name": {
                     "type": "string",
-                    "example": "支付宝"
+                    "example": "EPay Gateway"
+                },
+                "percentage_fee": {
+                    "type": "number",
+                    "example": 0.6
                 },
                 "sort_order": {
                     "type": "integer",
@@ -14483,12 +15402,13 @@
                     "type": "integer"
                 },
                 "port": {
-                    "type": "string",
-                    "maxLength": 11
+                    "type": "integer",
+                    "maximum": 65535,
+                    "minimum": 1
                 },
                 "rate": {
-                    "type": "string",
-                    "maxLength": 11
+                    "type": "number",
+                    "minimum": 0.1
                 },
                 "route_id": {
                     "type": "string",
@@ -14849,6 +15769,75 @@
                 }
             }
         },
+        "service.UpdateCouponRequest": {
+            "type": "object",
+            "properties": {
+                "applicable_plans": {
+                    "type": "string",
+                    "example": "[1,2,4]"
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "example": "Updated description"
+                },
+                "is_public": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "max_uses": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "example": 200
+                },
+                "max_uses_per_user": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 2
+                },
+                "min_order_amount": {
+                    "type": "number",
+                    "minimum": 0,
+                    "example": 15
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1,
+                    "example": "Updated Coupon Name"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "active",
+                        "inactive",
+                        "expired"
+                    ],
+                    "example": "active"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "percentage",
+                        "fixed_amount"
+                    ],
+                    "example": "percentage"
+                },
+                "valid_from": {
+                    "type": "string",
+                    "example": "2024-02-01T00:00:00Z"
+                },
+                "valid_until": {
+                    "type": "string",
+                    "example": "2024-11-30T23:59:59Z"
+                },
+                "value": {
+                    "type": "number",
+                    "minimum": 0,
+                    "example": 25
+                }
+            }
+        },
         "service.UpdateInvoiceRequest": {
             "type": "object",
             "properties": {
@@ -14918,33 +15907,9 @@
                     "type": "string",
                     "example": "{\"api_url\":\"...\"}"
                 },
-                "description": {
-                    "type": "string",
-                    "example": "支付宝扫码支付"
-                },
-                "environment": {
-                    "type": "string",
-                    "example": "production"
-                },
-                "fee_max": {
+                "fixed_fee": {
                     "type": "number",
-                    "example": 10
-                },
-                "fee_min": {
-                    "type": "number",
-                    "example": 0.01
-                },
-                "fee_type": {
-                    "type": "string",
-                    "example": "percentage"
-                },
-                "fee_value": {
-                    "type": "number",
-                    "example": 0.6
-                },
-                "icon": {
-                    "type": "string",
-                    "example": "https://example.com/alipay.png"
+                    "example": 0
                 },
                 "is_enabled": {
                     "type": "boolean",
@@ -14952,7 +15917,13 @@
                 },
                 "max_amount": {
                     "type": "number",
-                    "example": 999999.99
+                    "example": 99999.99
+                },
+                "methods": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.Method"
+                    }
                 },
                 "min_amount": {
                     "type": "number",
@@ -14960,7 +15931,11 @@
                 },
                 "name": {
                     "type": "string",
-                    "example": "支付宝"
+                    "example": "EPay Gateway"
+                },
+                "percentage_fee": {
+                    "type": "number",
+                    "example": 0.6
                 },
                 "sort_order": {
                     "type": "integer",
@@ -15112,12 +16087,13 @@
                     "type": "integer"
                 },
                 "port": {
-                    "type": "string",
-                    "maxLength": 11
+                    "type": "integer",
+                    "maximum": 65535,
+                    "minimum": 1
                 },
                 "rate": {
-                    "type": "string",
-                    "maxLength": 11
+                    "type": "number",
+                    "minimum": 0.1
                 },
                 "route_id": {
                     "type": "string",
@@ -15592,7 +16568,23 @@
             }
         },
         "user.UpdateSubscriptionServerGroupsRequest": {
-            "type": "object"
+            "type": "object",
+            "required": [
+                "server_group_ids"
+            ],
+            "properties": {
+                "server_group_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    },
+                    "example": [
+                        1,
+                        2,
+                        3
+                    ]
+                }
+            }
         },
         "user.UserProfileUpdateRequest": {
             "type": "object",

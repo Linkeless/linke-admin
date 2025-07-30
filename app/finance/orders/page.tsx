@@ -8,19 +8,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Package } from "lucide-react"
+import { ShoppingCart } from "lucide-react"
 import { PageHeader } from "@/components/layout/page-header"
 
-import { subscriptionService } from "@/lib/subscription-service"
-import { SubscriptionPlan } from "@/lib/subscription-types"
-import { createPlanColumns } from "./columns"
+import { orderService } from "@/lib/order-service"
+import { SubscriptionOrderResponse } from "@/lib/order-types"
+import { createColumns } from "./columns"
 import { DataTable } from "@/components/ui/data-table"
-import { 
-  CreatePlanDialog
-} from "@/components/subscriptions/subscription-plans"
+import { OrderStatsCards } from "@/components/finance/orders/order-stats-cards"
+import { OrderFilters } from "@/components/finance/orders/order-filters"
 
-export default function SubscriptionPlansPage() {
-  const [plans, setPlans] = useState<SubscriptionPlan[]>([])
+export default function OrdersPage() {
+  const [orders, setOrders] = useState<SubscriptionOrderResponse[]>([])
   const [loading, setLoading] = useState(true)
   
   // 分页状态 - 使用基于页码的分页（shadcn/ui标准）
@@ -28,40 +27,71 @@ export default function SubscriptionPlansPage() {
   const [pageSize, setPageSize] = useState(10)
   const [totalItems, setTotalItems] = useState(0)
 
-  const loadData = useCallback(async (page: number = 1, limit: number = 10) => {
+  // 筛选状态
+  const [filters, setFilters] = useState({
+    status: 'all',
+    order_type: 'all',
+    payment_method: 'all',
+    payment_gateway: 'all',
+    search: '',
+    start_date: '',
+    end_date: '',
+  })
+
+  const loadData = useCallback(async (page: number = 1, limit: number = 10, currentFilters = filters) => {
     try {
       setLoading(true)
       
       // 将页码转换为offset
       const offset = (page - 1) * limit
       
-      console.log('加载订阅计划列表，page:', page, 'offset:', offset, 'limit:', limit)
-      const response = await subscriptionService.getPlans({
+      // 构建查询参数
+      const queryParams: any = {
         offset: offset,
-        limit: limit
+        limit: limit,
+        sort_by: 'created_at',
+        sort_order: 'desc',
+      }
+
+      // 添加筛选条件
+      Object.entries(currentFilters).forEach(([key, value]) => {
+        if (value && value !== '' && value !== 'all') {
+          queryParams[key] = value
+        }
       })
       
+      const response = await orderService.getOrders(queryParams)
+      
+      console.log('Orders API Response:', response) // 调试信息
+      
       if (response.code === 0 && response.data) {
-        setPlans(response.data || [])
+        setOrders(response.data || [])
         setTotalItems(response.total || 0)
         setCurrentPage(page)
+      } else {
+        console.error('API返回错误:', response)
+        setOrders([])
+        setTotalItems(0)
       }
     } catch (error) {
-      console.error('加载订阅计划列表失败:', error)
+      console.error('加载订单列表失败:', error)
+      setOrders([])
+      setTotalItems(0)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [filters])
 
-  const handlePlanCreated = useCallback(() => {
-    // 重新加载计划列表
+  const handleOrderUpdated = useCallback(() => {
+    // 重新加载订单列表
     loadData(currentPage, pageSize)
   }, [loadData, currentPage, pageSize])
 
-  const handlePlanUpdated = useCallback(() => {
-    // 重新加载计划列表
-    loadData(currentPage, pageSize)
-  }, [loadData, currentPage, pageSize])
+  const handleFiltersChange = useCallback((newFilters: any) => {
+    setFilters(newFilters)
+    setCurrentPage(1) // 重置到第一页
+    loadData(1, pageSize, newFilters)
+  }, [loadData, pageSize])
 
   useEffect(() => {
     loadData(currentPage, pageSize)
@@ -70,22 +100,26 @@ export default function SubscriptionPlansPage() {
   return (
     <div className="flex flex-col">
       <PageHeader 
-        title="订阅计划管理" 
-        description="管理所有订阅计划，包括价格、流量、计费周期等配置"
-      >
-        <CreatePlanDialog onPlanCreated={handlePlanCreated} />
-      </PageHeader>
+        title="订单管理" 
+        description="管理系统订单和支付记录"
+      />
       
       <main className="flex-1 p-6">
         <div className="space-y-6">
+          {/* 订单统计卡片 */}
+          <OrderStatsCards />
+
+          {/* 筛选器 */}
+          <OrderFilters onFiltersChange={handleFiltersChange} />
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5" />
-                订阅计划列表
+                <ShoppingCart className="h-5 w-5" />
+                订单列表
               </CardTitle>
               <CardDescription>
-                共 {totalItems} 个计划
+                共 {totalItems} 个订单
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -97,24 +131,28 @@ export default function SubscriptionPlansPage() {
                 <>
                   {/* 数据表格（支持服务端分页） */}
                   <DataTable 
-                    columns={createPlanColumns({ 
-                      onPlanUpdated: handlePlanUpdated
+                    columns={createColumns({ 
+                      onOrderUpdated: handleOrderUpdated
                     })} 
-                    data={plans}
-                    searchPlaceholder="搜索计划名称..."
-                    searchColumn="name"
+                    data={orders}
+                    searchPlaceholder="搜索订单..."
+                    searchColumn="id"
                     columnNames={{
-                      name: '计划名称',
-                      price: '价格',
+                      id: 'ID',
+                      subscription_plan: '订阅计划',
+                      user: '用户',
                       status: '状态',
-                      duration_days: '时长',
-                      data_limit_gb: '流量限制',
-                      device_limit: '设备限制',
-                      trial_days: '试用天数',
+                      amount: '金额',
+                      payment_method: '支付方式',
+                      payment_gateway: '支付网关',
+                      order_type: '订单类型',
                       created_at: '创建时间',
                     }}
                     manualPagination={true}
                     pageCount={Math.ceil(totalItems / pageSize)}
+                    totalItems={totalItems}
+                    currentPage={currentPage}
+                    pageSize={pageSize}
                     initialPagination={{ pageIndex: currentPage - 1, pageSize }}
                     onPaginationChange={(updater) => {
                       const newPagination = typeof updater === 'function' 

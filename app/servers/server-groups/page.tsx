@@ -14,7 +14,7 @@ import { PageHeader } from "@/components/layout/page-header"
 import { serverGroupService } from "@/lib/server-group-service"
 import { ServerGroupResponse } from "@/lib/server-group-types"
 import { createColumns } from "./columns"
-import { DataTable } from "./data-table"
+import { DataTable } from "@/components/ui/data-table"
 import { 
   CreateServerGroupDialog
 } from "@/components/servers/server-groups"

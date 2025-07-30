@@ -14,7 +14,7 @@ import { PageHeader } from "@/components/layout/page-header"
 import { subscriptionService } from "@/lib/subscription-service"
 import { UserSubscription } from "@/lib/subscription-types"
 import { createUserSubscriptionColumns } from "./columns"
-import { DataTable } from "./data-table"
+import { DataTable } from "@/components/ui/data-table"
 import { 
   CreateUserSubscriptionDialog
 } from "@/components/subscriptions/user-subscriptions"
@@ -105,15 +105,38 @@ export default function UserSubscriptionsPage() {
                         onSubscriptionUpdated: handleSubscriptionUpdated
                       })} 
                       data={subscriptions}
+                      searchPlaceholder="搜索用户信息..."
+                      searchColumn="user"
+                      columnNames={{
+                        user: '用户信息',
+                        subscription_plan: '订阅计划',
+                        status: '状态',
+                        current_period_start: '当前周期',
+                        auto_renew: '自动续费',
+                        days_left: '剩余天数',
+                        is_in_trial: '试用状态',
+                        created_at: '创建时间',
+                      }}
+                      manualPagination={true}
                       pageCount={Math.ceil(totalItems / pageSize)}
+                      totalItems={totalItems}
                       currentPage={currentPage}
                       pageSize={pageSize}
-                      totalItems={totalItems}
-                      onPageChange={(page) => loadData(page, pageSize)}
-                      onPageSizeChange={(newPageSize) => {
-                        setPageSize(newPageSize)
-                        setCurrentPage(1)
-                        loadData(1, newPageSize)
+                      initialPagination={{ pageIndex: currentPage - 1, pageSize }}
+                      onPaginationChange={(updater) => {
+                        const newPagination = typeof updater === 'function' 
+                          ? updater({ pageIndex: currentPage - 1, pageSize })
+                          : updater
+                        const newPage = newPagination.pageIndex + 1
+                        const newPageSize = newPagination.pageSize
+                        
+                        if (newPageSize !== pageSize) {
+                          setPageSize(newPageSize)
+                          setCurrentPage(1)
+                          loadData(1, newPageSize)
+                        } else if (newPage !== currentPage) {
+                          loadData(newPage, pageSize)
+                        }
                       }}
                     />
                   </>

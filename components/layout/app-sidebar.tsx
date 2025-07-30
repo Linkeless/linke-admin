@@ -3,7 +3,6 @@
 import * as React from "react"
 import {
   LayoutDashboard,
-  CheckSquare,
   Layers3,
   Users,
   Shield,
@@ -15,6 +14,9 @@ import {
   HelpCircle,
   Package,
   UserCheck,
+  ShoppingCart,
+  Ticket,
+  TicketCheck,
 } from "lucide-react"
 
 import {
@@ -40,9 +42,9 @@ const navGroups: NavGroupProps[] = [
         icon: LayoutDashboard,
       },
       {
-        title: "Tasks",
-        url: "/tasks",
-        icon: CheckSquare,
+        title: "支付管理",
+        url: "/general/payments",
+        icon: CreditCard,
       },
       {
         title: "用户管理",
@@ -63,6 +65,31 @@ const navGroups: NavGroupProps[] = [
         title: "用户订阅",
         url: "/subscriptions/users",
         icon: UserCheck,
+      },
+    ],
+  },
+  {
+    title: "财务管理",
+    items: [
+      {
+        title: "订单管理",
+        url: "/finance/orders",
+        icon: ShoppingCart,
+      },
+      {
+        title: "优惠码管理",
+        url: "/finance/coupons",
+        icon: Ticket,
+      },
+    ],
+  },
+  {
+    title: "客户支持",
+    items: [
+      {
+        title: "工单管理",
+        url: "/support/tickets",
+        icon: TicketCheck,
       },
     ],
   },
