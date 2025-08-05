@@ -8,7 +8,7 @@ import { AppSidebar } from "@/components/layout/app-sidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { usePathname } from "next/navigation";
-import { errorHandler } from "@/lib/error-handler";
+import { globalErrorHandler } from "@/lib/error-handler";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -21,7 +21,7 @@ const geistMono = Geist_Mono({
 });
 
 // 不需要侧边栏的路径
-const noSidebarPaths = ['/login', '/auth'];
+const noSidebarPaths = ['/login', '/auth/callback'];
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -32,7 +32,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   );
 
   const handleError = (error: Error, errorInfo: React.ErrorInfo) => {
-    errorHandler.handleError(error, `页面错误: ${pathname}`)
+    globalErrorHandler.handleError(error, `页面错误: ${pathname}`)
   }
 
   if (!shouldShowSidebar) {

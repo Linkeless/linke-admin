@@ -3,12 +3,28 @@
 import React from 'react'
 import { cn } from '@/lib/utils'
 import { Separator } from '@/components/ui/separator'
-import { SidebarTrigger } from '@/components/ui/sidebar'
+import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar'
 
 interface PageHeaderProps extends React.HTMLAttributes<HTMLElement> {
   title?: string
   description?: string
   sticky?: boolean
+}
+
+// 安全的侧边栏触发器组件
+const SafeSidebarTrigger = () => {
+  try {
+    const sidebar = useSidebar()
+    return (
+      <>
+        <SidebarTrigger className="-ml-1" />
+        <Separator orientation="vertical" className="mr-2 h-4" />
+      </>
+    )
+  } catch {
+    // 如果不在 SidebarProvider 中，不渲染侧边栏触发器
+    return null
+  }
 }
 
 export const PageHeader = React.forwardRef<HTMLElement, PageHeaderProps>(
@@ -25,8 +41,7 @@ export const PageHeader = React.forwardRef<HTMLElement, PageHeaderProps>(
         )}
         {...props}
       >
-        <SidebarTrigger className="-ml-1" />
-        <Separator orientation="vertical" className="mr-2 h-4" />
+        <SafeSidebarTrigger />
         
         <div className="flex flex-1 items-center justify-between gap-4">
           {(title || description) && (

@@ -158,6 +158,31 @@ export interface StatsQueryParams {
 
 // ==================== Dashboard组合数据类型 ====================
 
+// 订单统计数据 (基于发票和支付数据组合)
+export interface OrderStatsData {
+  total_orders: number
+  paid_orders: number
+  pending_orders: number
+  total_revenue: number
+  conversion_rate: number
+}
+
+// 邀请码统计数据 (模拟数据结构)
+export interface InviteCodeStatsData {
+  total_codes: number
+  used_codes: number
+  unused_codes: number
+  usage_rate: number
+}
+
+// 工单统计数据 (模拟数据结构)
+export interface TicketStatsData {
+  total_tickets: number
+  open_tickets: number
+  resolved_tickets: number
+  pending_tickets: number
+}
+
 // Dashboard概览数据 (基于实际可用的APIs)
 export interface DashboardOverview {
   users: UserStatsResponse
@@ -167,6 +192,10 @@ export interface DashboardOverview {
   }
   invoices: InvoiceStatsResponse | null
   payments: PaymentRetryStatsResponse | null
+  // 计算字段，基于现有数据生成
+  orders: OrderStatsData
+  inviteCodes: InviteCodeStatsData
+  tickets: TicketStatsData
 }
 
 // Chart数据类型
