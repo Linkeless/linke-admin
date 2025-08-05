@@ -3,10 +3,10 @@ import { StandardResponse } from './types'
 import {
   DashboardOverview,
   UserStatsResponse,
-  OrderStatsResponse,
-  InviteCodeStatsResponse,
-  TicketStatsResponse,
-  ReferralCampaignStatsResponse,
+  CacheMetricsResponse,
+  PaymentRetryStatsResponse,
+  InvoiceStatsResponse,
+  CacheDashboardResponse,
   RevenueTrendData,
   UserGrowthData,
   StatsQueryParams,
@@ -16,10 +16,9 @@ import {
 
 export class DashboardService implements IDashboardService {
   
-  // 获取用户统计
-  async getUserStats(params?: StatsQueryParams): Promise<UserStatsResponse> {
-    const queryParams = this.buildQueryParams(params)
-    const response: StandardResponse<UserStatsResponse> = await api.get('/admin/users/stats', queryParams)
+  // 获取用户统计 (实际存在的API)
+  async getUserStats(): Promise<UserStatsResponse> {
+    const response: StandardResponse<UserStatsResponse> = await api.get('/admin/users/statistics')
     
     if (response.code === 0 && response.data) {
       return response.data
@@ -27,64 +26,74 @@ export class DashboardService implements IDashboardService {
     throw new Error(response.message || '获取用户统计失败')
   }
 
-  // 获取订单统计
-  async getOrderStats(params?: StatsQueryParams): Promise<OrderStatsResponse> {
-    const queryParams = this.buildQueryParams(params)
-    const response: StandardResponse<OrderStatsResponse> = await api.get('/admin/orders/stats', queryParams)
+  // 获取缓存性能指标
+  async getCacheMetrics(): Promise<CacheMetricsResponse> {
+    const response: StandardResponse<CacheMetricsResponse> = await api.get('/admin/cache/metrics')
     
     if (response.code === 0 && response.data) {
       return response.data
     }
-    throw new Error(response.message || '获取订单统计失败')
+    throw new Error(response.message || '获取缓存指标失败')
   }
 
-  // 获取邀请码统计
-  async getInviteCodeStats(): Promise<InviteCodeStatsResponse> {
-    const response: StandardResponse<InviteCodeStatsResponse> = await api.get('/admin/invite-codes/stats')
+  // 获取缓存监控仪表板数据
+  async getCacheDashboard(): Promise<CacheDashboardResponse> {
+    const response: StandardResponse<CacheDashboardResponse> = await api.get('/admin/cache/monitor/dashboard')
     
     if (response.code === 0 && response.data) {
       return response.data
     }
-    throw new Error(response.message || '获取邀请码统计失败')
+    throw new Error(response.message || '获取缓存仪表板数据失败')
   }
 
-  // 获取工单统计
-  async getTicketStats(params?: StatsQueryParams): Promise<TicketStatsResponse> {
-    const queryParams = this.buildQueryParams(params)
-    const response: StandardResponse<TicketStatsResponse> = await api.get('/admin/tickets/stats', queryParams)
+  // 获取支付重试统计
+  async getPaymentRetryStats(gateway: string, days: number = 30): Promise<PaymentRetryStatsResponse> {
+    const response: StandardResponse<PaymentRetryStatsResponse> = await api.get('/admin/payment/retries/statistics', {
+      gateway,
+      days: days.toString()
+    })
     
     if (response.code === 0 && response.data) {
       return response.data
     }
-    throw new Error(response.message || '获取工单统计失败')
+    throw new Error(response.message || '获取支付重试统计失败')
   }
 
-  // 获取推荐活动统计 (需要campaignId)
-  async getReferralCampaignStats(campaignId: number): Promise<ReferralCampaignStatsResponse> {
-    const response: StandardResponse<ReferralCampaignStatsResponse> = await api.get(`/admin/referral-campaigns/${campaignId}/stats`)
+  // 获取发票统计
+  async getInvoiceStats(fromDate?: string, toDate?: string): Promise<InvoiceStatsResponse> {
+    const params: Record<string, string> = {}
+    if (fromDate) params.from_date = fromDate
+    if (toDate) params.to_date = toDate
+    
+    const response: StandardResponse<InvoiceStatsResponse> = await api.get('/invoice/statistics', params)
     
     if (response.code === 0 && response.data) {
       return response.data
     }
-    throw new Error(response.message || '获取推荐活动统计失败')
+    throw new Error(response.message || '获取发票统计失败')
   }
 
-  // 获取Dashboard概览数据
+  // 获取Dashboard概览数据 (基于实际可用的APIs)
   async getOverview(params?: StatsQueryParams): Promise<DashboardOverview> {
     try {
       // 并行获取所有统计数据
-      const [users, orders, inviteCodes, tickets] = await Promise.all([
-        this.getUserStats(params),
-        this.getOrderStats(params),
-        this.getInviteCodeStats(),
-        this.getTicketStats(params)
+      const [userStats, cacheMetrics, cacheDashboard, invoiceStats] = await Promise.allSettled([
+        this.getUserStats(),
+        this.getCacheMetrics(),
+        this.getCacheDashboard(),
+        this.getInvoiceStats(params?.start_date, params?.end_date)
       ])
 
+      // 构建概览数据，如果某个API失败则使用默认值
       return {
-        users,
-        orders,
-        inviteCodes,
-        tickets
+        users: userStats.status === 'fulfilled' ? userStats.value : this.getDefaultUserStats(),
+        cache: {
+          metrics: cacheMetrics.status === 'fulfilled' ? cacheMetrics.value : null,
+          dashboard: cacheDashboard.status === 'fulfilled' ? cacheDashboard.value : null
+        },
+        invoices: invoiceStats.status === 'fulfilled' ? invoiceStats.value : null,
+        // 可以添加支付重试统计，但需要指定gateway
+        payments: null
       }
     } catch (error) {
       console.error('获取Dashboard概览数据失败:', error)
@@ -92,20 +101,17 @@ export class DashboardService implements IDashboardService {
     }
   }
 
-  // 获取收入趋势数据 (基于订单统计数据模拟)
+  // 获取收入趋势数据 (基于发票统计数据模拟)
   async getRevenueTrend(params?: StatsQueryParams): Promise<RevenueTrendData> {
     try {
-      // 获取不同时间周期的数据
-      const [dailyStats, weeklyStats, monthlyStats] = await Promise.all([
-        this.getOrderStats({ ...params, period: 'today' }),
-        this.getOrderStats({ ...params, period: 'week' }),
-        this.getOrderStats({ ...params, period: 'month' })
-      ])
-
+      // 基于发票统计获取收入数据
+      const invoiceStats = await this.getInvoiceStats(params?.start_date, params?.end_date)
+      
       // 模拟趋势数据 - 实际项目中应该有专门的趋势接口
-      const daily: ChartDataPoint[] = this.generateMockTrendData('daily', dailyStats.total_revenue)
-      const weekly: ChartDataPoint[] = this.generateMockTrendData('weekly', weeklyStats.total_revenue)
-      const monthly: ChartDataPoint[] = this.generateMockTrendData('monthly', monthlyStats.total_revenue)
+      const baseRevenue = invoiceStats?.total_amount || 0
+      const daily: ChartDataPoint[] = this.generateMockTrendData('daily', baseRevenue)
+      const weekly: ChartDataPoint[] = this.generateMockTrendData('weekly', baseRevenue)
+      const monthly: ChartDataPoint[] = this.generateMockTrendData('monthly', baseRevenue)
 
       return { daily, weekly, monthly }
     } catch (error) {
@@ -120,15 +126,29 @@ export class DashboardService implements IDashboardService {
   }
 
   // 获取用户增长数据 (基于用户统计数据模拟)
-  async getUserGrowth(params?: StatsQueryParams): Promise<UserGrowthData[]> {
+  async getUserGrowth(_params?: StatsQueryParams): Promise<UserGrowthData[]> {
     try {
-      const userStats = await this.getUserStats(params)
+      const userStats = await this.getUserStats()
       
       // 模拟用户增长数据 - 实际项目中应该有专门的增长接口
       return this.generateMockUserGrowthData(userStats)
     } catch (error) {
       console.error('获取用户增长数据失败:', error)
       return []
+    }
+  }
+
+  // 获取默认用户统计数据 (当API失败时使用)
+  private getDefaultUserStats(): UserStatsResponse {
+    return {
+      total_users: 0,
+      active_users: 0,
+      new_users_today: 0,
+      new_users_this_week: 0,
+      new_users_this_month: 0,
+      users_by_role: {},
+      users_by_provider: {},
+      users_by_status: {}
     }
   }
 

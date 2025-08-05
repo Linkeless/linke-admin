@@ -304,7 +304,7 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
           <DropdownMenuItem>Make a copy</DropdownMenuItem>
           <DropdownMenuItem>Favorite</DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive" {...{} as any}>
+          <DropdownMenuItem variant="destructive">
             Delete
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -464,7 +464,6 @@ export function DataTable({
                       onCheckedChange={(value: boolean) =>
                         column.toggleVisibility(!!value)
                       }
-                      {...{} as any}
                     >
                       {column.id}
                     </DropdownMenuCheckboxItem>

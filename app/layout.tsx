@@ -6,7 +6,9 @@ import "./globals.css";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { Toaster } from "@/components/ui/sonner";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { usePathname } from "next/navigation";
+import { errorHandler } from "@/lib/error-handler";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,17 +31,27 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     pathname === path || pathname.startsWith(path + '/')
   );
 
+  const handleError = (error: Error, errorInfo: React.ErrorInfo) => {
+    errorHandler.handleError(error, `页面错误: ${pathname}`)
+  }
+
   if (!shouldShowSidebar) {
-    return <>{children}</>;
+    return (
+      <ErrorBoundary onError={handleError}>
+        {children}
+      </ErrorBoundary>
+    );
   }
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        {children}
-      </SidebarInset>
-    </SidebarProvider>
+    <ErrorBoundary onError={handleError}>
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          {children}
+        </SidebarInset>
+      </SidebarProvider>
+    </ErrorBoundary>
   );
 }
 

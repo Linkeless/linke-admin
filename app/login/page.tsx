@@ -6,6 +6,7 @@ import { GalleryVerticalEnd } from "lucide-react"
 import { LoginForm } from "@/components/auth/login-form"
 import { AuthProvider, useAuth } from "@/contexts/AuthContext"
 import { LoginRequest, ApiError } from "@/lib/types"
+import { showError, showSuccess } from "@/lib/error-handler"
 
 function LoginPageContent() {
   const [loading, setLoading] = useState(false)
@@ -27,13 +28,12 @@ function LoginPageContent() {
     
     try {
       await login(credentials)
+      showSuccess('登录成功', '正在跳转到管理后台...')
       // 登录成功，AuthContext会自动更新状态，useEffect会处理跳转
     } catch (err: any) {
-      if (err instanceof ApiError) {
-        setError(err.message)
-      } else {
-        setError('登录失败，请检查邮箱和密码')
-      }
+      const errorMessage = err instanceof ApiError ? err.message : '登录失败，请检查邮箱和密码'
+      setError(errorMessage)
+      showError(err, '登录失败')
     } finally {
       setLoading(false)
     }
@@ -48,11 +48,9 @@ function LoginPageContent() {
       await loginWithOAuth(provider)
       // OAuth会跳转到第三方页面，不需要额外处理
     } catch (err: any) {
-      if (err instanceof ApiError) {
-        setError(err.message)
-      } else {
-        setError(`${provider} 登录失败`)
-      }
+      const errorMessage = err instanceof ApiError ? err.message : `${provider} 登录失败`
+      setError(errorMessage)
+      showError(err, `${provider} 登录`)
       setLoading(false)
     }
   }

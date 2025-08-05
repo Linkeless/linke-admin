@@ -226,7 +226,7 @@ export function ConfigEditor({ value, onChange, placeholder, disabled }: ConfigE
             <ul className="ml-4 space-y-1">
               <li>• 配置参数必须是有效的JSON格式</li>
               <li>• 可以选择上方的模板快速填入常用配置</li>
-              <li>• 使用&quot;格式化&quot;按钮可以自动整理JSON格式</li>
+              <li>• 使用"格式化"按钮可以自动整理JSON格式</li>
             </ul>
           </div>
           

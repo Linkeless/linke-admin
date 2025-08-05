@@ -120,3 +120,20 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* 骨架屏动画 */
+@layer utilities {
+  .skeleton {
+    @apply animate-pulse bg-muted;
+    animation: skeleton-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes skeleton-pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+}

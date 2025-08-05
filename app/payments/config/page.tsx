@@ -15,10 +15,9 @@ import { paymentService } from '@/lib/payment-service'
 import { PaymentConfigResponse } from '@/lib/payment-types'
 import { createColumns } from './columns'
 import { DataTable } from '@/components/ui/data-table'
-import { CreatePaymentConfigDialog } from './components/create-payment-config-dialog'
-import { EditPaymentConfigDialog } from './components/edit-payment-config-dialog'
+import { CreatePaymentConfigDialog, EditPaymentConfigDialog } from './components'
 
-export default function PaymentsPage() {
+export default function PaymentConfigPage() {
   const [paymentConfigs, setPaymentConfigs] = useState<PaymentConfigResponse[]>([])
   const [loading, setLoading] = useState(true)
   
@@ -43,7 +42,7 @@ export default function PaymentsPage() {
         limit: limit
       })
       
-      console.log('API Response:', response) // 调试信息
+      console.log('Payment Config API Response:', response) // 调试信息
       
       if (response.code === 0 && response.data) {
         // 实际API返回的是 {code, message, data: [...], total, limit, offset}
@@ -91,7 +90,7 @@ export default function PaymentsPage() {
   return (
     <div className="flex flex-col">
       <PageHeader 
-        title="支付管理" 
+        title="支付配置" 
         description="管理系统支付配置和支付方式"
       >
         <CreatePaymentConfigDialog onConfigCreated={handleConfigCreated} />
@@ -106,7 +105,7 @@ export default function PaymentsPage() {
                 支付配置列表
               </CardTitle>
               <CardDescription>
-                共 {totalItems} 个配置
+                共 {totalItems} 个配置，当前显示第 {currentPage} 页
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -123,15 +122,36 @@ export default function PaymentsPage() {
                       onEdit: handleEdit
                     })} 
                     data={paymentConfigs}
+                    searchPlaceholder="搜索配置名称..."
+                    searchColumn="name"
+                    columnNames={{
+                      name: '名称',
+                      gateway: '支付网关',
+                      method: '支付方式',
+                      environment: '环境',
+                      is_enabled: '状态',
+                      created_at: '创建时间',
+                    }}
+                    manualPagination={true}
                     pageCount={Math.ceil(totalItems / pageSize)}
+                    totalItems={totalItems}
                     currentPage={currentPage}
                     pageSize={pageSize}
-                    totalItems={totalItems}
-                    onPageChange={(page: number) => loadData(page, pageSize)}
-                    onPageSizeChange={(newPageSize: number) => {
-                      setPageSize(newPageSize)
-                      setCurrentPage(1)
-                      loadData(1, newPageSize)
+                    initialPagination={{ pageIndex: currentPage - 1, pageSize }}
+                    onPaginationChange={(updater) => {
+                      const newPagination = typeof updater === 'function' 
+                        ? updater({ pageIndex: currentPage - 1, pageSize })
+                        : updater
+                      const newPage = newPagination.pageIndex + 1
+                      const newPageSize = newPagination.pageSize
+                      
+                      if (newPageSize !== pageSize) {
+                        setPageSize(newPageSize)
+                        setCurrentPage(1)
+                        loadData(1, newPageSize)
+                      } else if (newPage !== currentPage) {
+                        loadData(newPage, pageSize)
+                      }
                     }}
                   />
                 </>

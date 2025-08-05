@@ -1,15 +1,11 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { api, setTokens, clearTokens, getToken } from '@/lib/api'
+import { setTokens, clearTokens, getToken } from '@/lib/api'
+import { authService } from '@/lib/auth-service'
 import { 
   UserResponse, 
   LoginRequest, 
-  AuthResponse, 
-  AuthorizeURLRequest, 
-  AuthorizeURLResponse,
-  TokenExchangeRequest,
-  StandardResponse,
   ApiError 
 } from '@/lib/types'
 
@@ -66,13 +62,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // 验证token并获取用户信息
   const validateToken = async () => {
     try {
-      const response: StandardResponse<UserResponse> = await api.get('/auth/profile')
-      if (response.code === 0 && response.data) {
-        setUser(response.data)
-        return true
-      } else {
-        throw new Error(response.message || 'Failed to get user profile')
-      }
+      const userData = await authService.getProfile()
+      setUser(userData)
+      return true
     } catch (error) {
       clearTokens()
       setToken(null)
@@ -84,18 +76,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // 本地账户登录
   const login = async (credentials: LoginRequest) => {
     try {
-      const response: StandardResponse<AuthResponse> = await api.post('/auth/login', credentials)
+      const authData = await authService.login(credentials)
       
-      if (response.code === 0 && response.data) {
-        const { token: tokenData, user: userData } = response.data
-        
-        // 存储认证信息
-        setTokens(tokenData.access_token, tokenData.refresh_token)
-        setToken(tokenData.access_token)
-        setUser(userData)
-      } else {
-        throw new ApiError(response.message || '登录失败', response.code)
-      }
+      // 存储认证信息
+      setTokens(authData.token.access_token, authData.token.refresh_token)
+      setToken(authData.token.access_token)
+      setUser(authData.user)
     } catch (error) {
       if (error instanceof ApiError) {
         throw error
@@ -107,19 +93,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // OAuth登录
   const loginWithOAuth = async (provider: string) => {
     try {
-      const urlRequest: AuthorizeURLRequest = {
-        provider,
-        redirect_uri: `${window.location.origin}/auth/callback?provider=${provider}`,
-      }
-      
-      const response: StandardResponse<AuthorizeURLResponse> = await api.post('/auth/url', urlRequest)
-      
-      if (response.code === 0 && response.data) {
-        // 跳转到第三方授权页面
-        window.location.href = response.data.auth_url
-      } else {
-        throw new ApiError(response.message || 'OAuth登录失败', response.code)
-      }
+      const oauthData = await authService.getOAuthURL(provider)
+      // 跳转到第三方授权页面
+      window.location.href = oauthData.auth_url
     } catch (error) {
       if (error instanceof ApiError) {
         throw error
@@ -131,26 +107,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // 处理OAuth回调
   const handleOAuthCallback = async (code: string, state?: string, provider?: string) => {
     try {
-      const tokenRequest: TokenExchangeRequest = {
-        code,
-        provider: provider || 'google',
-        state,
-      }
-
-      const response: StandardResponse<AuthResponse> = await api.post('/auth/token', tokenRequest)
-
-      if (response.code === 0 && response.data) {
-        const { token: tokenData, user: userData } = response.data
-        
-        // 存储认证信息
-        setTokens(tokenData.access_token, tokenData.refresh_token)
-        setToken(tokenData.access_token)
-        setUser(userData)
-        
-        return true
-      } else {
-        throw new ApiError(response.message || 'OAuth登录失败', response.code)
-      }
+      const authData = await authService.exchangeOAuthToken(code, provider || 'google', state)
+      
+      // 存储认证信息
+      setTokens(authData.token.access_token, authData.token.refresh_token)
+      setToken(authData.token.access_token)
+      setUser(authData.user)
+      
+      return true
     } catch (error) {
       if (error instanceof ApiError) {
         throw error
@@ -162,7 +126,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // 登出
   const logout = async () => {
     try {
-      await api.post('/auth/logout')
+      await authService.logout()
     } catch (error) {
       // Logout error handled silently
     } finally {
@@ -175,15 +139,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Token刷新
   const refreshToken = async () => {
     try {
-      const response: StandardResponse<{ access_token: string }> = await api.post('/auth/refresh')
-      
-      if (response.code === 0 && response.data) {
-        const newToken = response.data.access_token
-        setTokens(newToken)
-        setToken(newToken)
-        return true
-      }
-      return false
+      const tokenData = await authService.refreshAccessToken()
+      setTokens(tokenData.access_token, tokenData.refresh_token)
+      setToken(tokenData.access_token)
+      return true
     } catch (error) {
       return false
     }
@@ -208,18 +167,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 }
 
 // 导出OAuth回调处理函数供外部使用
-export const handleOAuthCallback = async (code: string, state?: string, provider?: string): Promise<AuthResponse> => {
-  const tokenRequest: TokenExchangeRequest = {
-    code, 
-    provider: provider || 'google',
-    state,
-  }
-
-  const response: StandardResponse<AuthResponse> = await api.post('/auth/token', tokenRequest)
-
-  if (response.code === 0 && response.data) {
-    return response.data
-  } else {
-    throw new ApiError(response.message || 'OAuth登录失败', response.code)
-  }
+export const handleOAuthCallback = async (code: string, state?: string, provider?: string) => {
+  return await authService.exchangeOAuthToken(code, provider || 'google', state)
 }

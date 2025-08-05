@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { LoginRequest, ApiError } from "@/lib/types"
-import { Loader2, AlertCircle } from "lucide-react"
+import { ButtonLoading } from "@/components/ui/loading"
+import { ErrorDisplay } from "@/components/ui/error-boundary"
+import { AlertCircle } from "lucide-react"
 
 interface LoginFormProps {
   onSubmit: (credentials: LoginRequest) => Promise<void>
@@ -44,12 +46,7 @@ export function LoginForm({
         </p>
       </div>
       
-      {error && (
-        <div className="flex items-center gap-2 p-3 text-sm border border-destructive/20 bg-destructive/10 text-destructive rounded-md">
-          <AlertCircle className="h-4 w-4" />
-          <span>{error}</span>
-        </div>
-      )}
+      <ErrorDisplay error={error} className="mb-4" />
       
       <div className="grid gap-6">
         <div className="grid gap-3">
@@ -81,7 +78,7 @@ export function LoginForm({
         <Button type="submit" className="w-full" disabled={loading || !email || !password}>
           {loading ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <ButtonLoading className="mr-2" />
               登录中...
             </>
           ) : (

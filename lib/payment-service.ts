@@ -6,49 +6,10 @@ import {
   ApiResponse,
   PaymentConfigsApiResponse
 } from './payment-types'
-import { getToken } from './api'
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080/api/v1'
+import { api } from './api'
 
 class PaymentService {
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<ApiResponse<T>> {
-    const url = `${API_BASE_URL}${endpoint}`
-    
-    const defaultHeaders: Record<string, string> = {
-      'Content-Type': 'application/json',
-    }
-
-    // 添加认证 token
-    const token = getToken()
-    if (token) {
-      defaultHeaders.Authorization = `Bearer ${token}`
-    }
-
-    const config: RequestInit = {
-      ...options,
-      headers: {
-        ...defaultHeaders,
-        ...options.headers,
-      },
-    }
-
-    try {
-      const response = await fetch(url, config)
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const data = await response.json()
-      return data
-    } catch (error) {
-      console.error('API request failed:', error)
-      throw error
-    }
-  }
+  // 使用统一的API客户端
 
   // 获取支付配置列表
   async getPaymentConfigs(params?: PaymentConfigsQueryParams): Promise<PaymentConfigsApiResponse> {
@@ -63,34 +24,24 @@ class PaymentService {
     }
 
     const queryString = searchParams.toString()
-    const endpoint = `/admin/payments/configs${queryString ? `?${queryString}` : ''}`
+    const endpoint = `/admin/payment/configs${queryString ? `?${queryString}` : ''}`
     
-    return this.request<PaymentConfigsApiResponse>(endpoint, {
-      method: 'GET',
-    })
+    return api.get<PaymentConfigsApiResponse>(endpoint)
   }
 
   // 创建支付配置
   async createPaymentConfig(data: CreatePaymentConfigRequest): Promise<ApiResponse<PaymentConfigResponse>> {
-    return this.request<PaymentConfigResponse>('/admin/payments/configs', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
+    return api.post<ApiResponse<PaymentConfigResponse>>('/admin/payment/configs', data)
   }
 
   // 更新支付配置
   async updatePaymentConfig(id: number, data: UpdatePaymentConfigRequest): Promise<ApiResponse<PaymentConfigResponse>> {
-    return this.request<PaymentConfigResponse>(`/admin/payments/configs/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    })
+    return api.put<ApiResponse<PaymentConfigResponse>>(`/admin/payment/configs/${id}`, data)
   }
 
   // 删除支付配置
   async deletePaymentConfig(id: number): Promise<ApiResponse<void>> {
-    return this.request<void>(`/admin/payments/configs/${id}`, {
-      method: 'DELETE',
-    })
+    return api.delete<ApiResponse<void>>(`/admin/payment/configs/${id}`)
   }
 
   // 批量启用支付配置

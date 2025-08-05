@@ -1,6 +1,6 @@
 // ==================== 统计数据类型定义 ====================
 
-// 用户统计
+// 用户统计 (基于实际API: /admin/users/statistics)
 export interface UserStatsResponse {
   total_users: number
   active_users: number
@@ -18,61 +18,131 @@ export interface UserStatsResponse {
   }
 }
 
-// 订单统计
-export interface OrderStatsResponse {
-  total_orders: number
-  pending_orders: number
-  paid_orders: number
-  failed_orders: number
-  cancelled_orders: number
-  refunded_orders: number
-  total_revenue: number
-  total_refunded: number
-  avg_order_value: number
-  conversion_rate: number
-}
-
-// 邀请码统计  
-export interface InviteCodeStatsResponse {
-  total_codes: number
-  used_codes: number
-  unused_codes: number
-  usage_rate: number
-  total_conversions: number
-}
-
-// 工单统计
-export interface TicketStatsResponse {
-  total_tickets: number
-  open_tickets: number
-  in_progress_tickets: number
-  resolved_tickets: number
-  closed_tickets: number
-  avg_response_time: number // in hours
-  avg_resolution_time: number // in hours
-  tickets_by_priority: {
-    low: number
-    medium: number
-    high: number
-    urgent: number
+// 缓存指标 (基于实际API: /admin/cache/metrics)
+export interface CacheMetricsResponse {
+  global_metrics: CacheMetrics
+  prefix_metrics: {
+    [key: string]: CacheMetrics
   }
-  tickets_by_category: {
+  top_prefixes: CachePrefixMetricSummary[]
+  timestamp: string
+}
+
+export interface CacheMetrics {
+  hits: number
+  misses: number
+  hitRate: number
+  sets: number
+  deletes: number
+  evictions: number
+  memoryUsed: number
+  keyCount: number
+}
+
+export interface CachePrefixMetricSummary {
+  prefix: string
+  metrics: CacheMetrics
+}
+
+// 缓存监控仪表板 (基于实际API: /admin/cache/monitor/dashboard)
+export interface CacheDashboardResponse {
+  health: CacheHealthResponse
+  metrics: CacheMetricsResponse
+  performance: CachePerformanceResponse
+  invalidation: CacheInvalidationResponse
+  alerts: string[]
+  warming: CacheWarmingResponse
+}
+
+export interface CacheHealthResponse {
+  status: string
+  components: {
+    [key: string]: string
+  }
+  issues: string[]
+  uptime: number
+}
+
+export interface CacheMetricsResponse {
+  realtime: CacheMetrics
+  historical: CacheHistoricalMetrics[]
+}
+
+export interface CacheHistoricalMetrics {
+  timestamp: string
+  metrics: CacheMetrics
+}
+
+export interface CachePerformanceResponse {
+  latency: {
+    avg: number
+    p50: number
+    p95: number
+    p99: number
+  }
+  throughput: {
+    reads_per_second: number
+    writes_per_second: number
+  }
+  trends: {
+    [key: string]: number[]
+  }
+}
+
+export interface CacheInvalidationResponse {
+  total_invalidations: number
+  recent_invalidations: CacheInvalidationEvent[]
+  patterns: {
     [key: string]: number
   }
 }
 
-// 推荐活动统计
-export interface ReferralCampaignStatsResponse {
-  total_referrals: number
-  total_conversions: number  
-  conversion_rate: number
-  total_rewards_paid: number
-  total_reward_budget: number
-  avg_reward_per_conversion: number
-  referrals_by_status: {
-    pending: number
-    completed: number
-    failed: number
+export interface CacheInvalidationEvent {
+  timestamp: string
+  pattern: string
+  keys_invalidated: number
+  reason: string
+}
+
+export interface CacheWarmingResponse {
+  status: string
+  progress: number
+  estimated_completion: string
+  last_run: string
+}
+
+// 支付重试统计 (基于实际API: /admin/payment/retries/statistics)
+export interface PaymentRetryStatsResponse {
+  total_retries: number
+  successful_retries: number
+  failed_retries: number
+  pending_retries: number
+  success_rate: number
+  avg_retry_attempts: number
+  retries_by_gateway: {
+    [key: string]: number
+  }
+  retries_by_status: {
+    [key: string]: number
+  }
+}
+
+// 发票统计 (基于实际API: /invoice/statistics)
+export interface InvoiceStatsResponse {
+  total_invoices: number
+  paid_invoices: number
+  unpaid_invoices: number
+  overdue_invoices: number
+  total_amount: number
+  paid_amount: number
+  unpaid_amount: number
+  overdue_amount: number
+  avg_invoice_amount: number
+  invoices_by_status: {
+    [key: string]: number
+  }
+  monthly_revenue: {
+    [key: string]: number
   }
 }
 
@@ -88,13 +158,15 @@ export interface StatsQueryParams {
 
 // ==================== Dashboard组合数据类型 ====================
 
-// Dashboard概览数据
+// Dashboard概览数据 (基于实际可用的APIs)
 export interface DashboardOverview {
   users: UserStatsResponse
-  orders: OrderStatsResponse
-  inviteCodes: InviteCodeStatsResponse
-  tickets: TicketStatsResponse
-  // referrals 可能需要campaignId，先不包含在overview中
+  cache: {
+    metrics: CacheMetricsResponse | null
+    dashboard: CacheDashboardResponse | null
+  }
+  invoices: InvoiceStatsResponse | null
+  payments: PaymentRetryStatsResponse | null
 }
 
 // Chart数据类型
@@ -131,17 +203,20 @@ export interface DashboardService {
   // 获取概览数据
   getOverview(params?: StatsQueryParams): Promise<DashboardOverview>
   
-  // 获取用户统计
-  getUserStats(params?: StatsQueryParams): Promise<UserStatsResponse>
+  // 获取用户统计 (实际API)
+  getUserStats(): Promise<UserStatsResponse>
   
-  // 获取订单统计
-  getOrderStats(params?: StatsQueryParams): Promise<OrderStatsResponse>
+  // 获取缓存指标
+  getCacheMetrics(): Promise<CacheMetricsResponse>
   
-  // 获取邀请码统计
-  getInviteCodeStats(): Promise<InviteCodeStatsResponse>
+  // 获取缓存监控仪表板数据
+  getCacheDashboard(): Promise<CacheDashboardResponse>
   
-  // 获取工单统计
-  getTicketStats(params?: StatsQueryParams): Promise<TicketStatsResponse>
+  // 获取支付重试统计
+  getPaymentRetryStats(gateway: string, days?: number): Promise<PaymentRetryStatsResponse>
+  
+  // 获取发票统计
+  getInvoiceStats(fromDate?: string, toDate?: string): Promise<InvoiceStatsResponse>
   
   // 获取收入趋势数据
   getRevenueTrend(params?: StatsQueryParams): Promise<RevenueTrendData>

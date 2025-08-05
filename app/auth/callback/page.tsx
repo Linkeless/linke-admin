@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Loader2, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -16,11 +16,7 @@ export default function AuthCallbackPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  useEffect(() => {
-    handleCallback()
-  }, [])
-
-  const handleCallback = async () => {
+  const handleCallback = useCallback(async () => {
     try {
       const code = searchParams.get('code')
       const state = searchParams.get('state')
@@ -52,7 +48,11 @@ export default function AuthCallbackPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [searchParams, router])
+
+  useEffect(() => {
+    handleCallback()
+  }, [handleCallback])
 
   if (loading) {
     return (
