@@ -1,7 +1,21 @@
 'use client'
 
 import { ColumnDef } from "@tanstack/react-table"
-import { MoreHorizontal, Trash2, TicketCheck, User, MessageSquare, ChevronsUpDown, Edit, UserCheck, X } from "lucide-react"
+import { 
+  MoreHorizontal, 
+  Trash2, 
+  TicketCheck, 
+  User, 
+  MessageSquare, 
+  ChevronsUpDown, 
+  Edit, 
+  UserCheck, 
+  X,
+  RotateCcw,
+  TrendingUp,
+  AlertTriangle
+} from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -261,10 +275,22 @@ export const createColumns = ({
                 标记为已解决
               </DropdownMenuItem>
             )}
+            {ticket.status === 'closed' && (
+              <DropdownMenuItem onClick={() => handleReopen(ticket)}>
+                <RotateCcw className="mr-2 h-4 w-4" />
+                重新打开
+              </DropdownMenuItem>
+            )}
             {ticket.status !== 'closed' && (
               <DropdownMenuItem onClick={() => handleClose(ticket)}>
                 <X className="mr-2 h-4 w-4" />
                 关闭工单
+              </DropdownMenuItem>
+            )}
+            {(ticket.status === 'open' || ticket.status === 'in_progress') && (
+              <DropdownMenuItem onClick={() => handleEscalate(ticket)}>
+                <TrendingUp className="mr-2 h-4 w-4" />
+                升级工单
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />
@@ -279,37 +305,135 @@ export const createColumns = ({
         </DropdownMenu>
       )
       
-      function handleDelete(ticket: TicketResponse) {
-        if (confirm('确定要删除这个工单吗？此操作不可撤销。')) {
-          ticketService.deleteTicket(ticket.id)
-            .then(() => onTicketUpdated())
-            .catch((error) => {
-              console.error('删除工单失败:', error)
-              alert('删除工单失败，请重试')
+      async function handleDelete(ticket: TicketResponse) {
+        if (!confirm('确定要删除这个工单吗？此操作不可撤销。')) {
+          return
+        }
+        
+        try {
+          const response = await ticketService.deleteTicket(ticket.id)
+          if (response.code === 0) {
+            toast.success('删除成功', {
+              description: `工单 ${ticket.ticket_no} 已删除`,
             })
+            onTicketUpdated()
+          } else {
+            throw new Error(response.message || '删除工单失败')
+          }
+        } catch (error) {
+          console.error('删除工单失败:', error)
+          toast.error('删除失败', {
+            description: error instanceof Error ? error.message : '删除工单失败，请重试',
+          })
         }
       }
 
-      function handleClose(ticket: TicketResponse) {
-        if (confirm('确定要关闭这个工单吗？')) {
-          ticketService.closeTicket(ticket.id)
-            .then(() => onTicketUpdated())
-            .catch((error) => {
-              console.error('关闭工单失败:', error)
-              alert('关闭工单失败，请重试')
+      async function handleClose(ticket: TicketResponse) {
+        if (!confirm('确定要关闭这个工单吗？')) {
+          return
+        }
+        
+        try {
+          const response = await ticketService.closeTicket(ticket.id)
+          if (response.code === 0) {
+            toast.success('关闭成功', {
+              description: `工单 ${ticket.ticket_no} 已关闭`,
             })
+            onTicketUpdated()
+          } else {
+            throw new Error(response.message || '关闭工单失败')
+          }
+        } catch (error) {
+          console.error('关闭工单失败:', error)
+          toast.error('关闭失败', {
+            description: error instanceof Error ? error.message : '关闭工单失败，请重试',
+          })
         }
       }
 
-      function handleResolve(ticket: TicketResponse) {
+      async function handleReopen(ticket: TicketResponse) {
+        if (!confirm('确定要重新打开这个工单吗？')) {
+          return
+        }
+        
+        try {
+          const response = await ticketService.reopenTicket(ticket.id)
+          if (response.code === 0) {
+            toast.success('重新打开成功', {
+              description: `工单 ${ticket.ticket_no} 已重新打开`,
+            })
+            onTicketUpdated()
+          } else {
+            throw new Error(response.message || '重新打开工单失败')
+          }
+        } catch (error) {
+          console.error('重新打开工单失败:', error)
+          toast.error('重新打开失败', {
+            description: error instanceof Error ? error.message : '重新打开工单失败，请重试',
+          })
+        }
+      }
+
+      async function handleEscalate(ticket: TicketResponse) {
+        const reason = prompt('请输入升级原因:');
+        if (!reason || reason.trim().length < 10) {
+          toast.error('升级失败', {
+            description: '升级原因至少需要10个字符',
+          })
+          return
+        }
+        
+        try {
+          const response = await ticketService.escalateTicket(ticket.id, {
+            escalated_to_id: 1, // 默认升级给管理员，实际应该让用户选择
+            escalation_reason: reason.trim(),
+            priority: 'urgent',
+            notes: '通过操作界面升级',
+          })
+          
+          if (response.code === 0) {
+            toast.success('升级成功', {
+              description: `工单 ${ticket.ticket_no} 已升级`,
+            })
+            onTicketUpdated()
+          } else {
+            throw new Error(response.message || '升级工单失败')
+          }
+        } catch (error) {
+          console.error('升级工单失败:', error)
+          toast.error('升级失败', {
+            description: error instanceof Error ? error.message : '升级工单失败，请重试',
+          })
+        }
+      }
+
+      async function handleResolve(ticket: TicketResponse) {
         const resolution = prompt('请输入解决方案:')
-        if (resolution) {
-          ticketService.resolveTicket(ticket.id, { resolution })
-            .then(() => onTicketUpdated())
-            .catch((error) => {
-              console.error('解决工单失败:', error)
-              alert('解决工单失败，请重试')
+        if (!resolution || resolution.trim().length < 10) {
+          toast.error('解决失败', {
+            description: '解决方案至少需要10个字符',
+          })
+          return
+        }
+        
+        try {
+          const response = await ticketService.resolveTicket(ticket.id, { 
+            resolution: resolution.trim() 
+          })
+          
+          if (response.code === 0) {
+            toast.success('解决成功', {
+              description: `工单 ${ticket.ticket_no} 已标记为已解决`,
             })
+            onTicketUpdated()
+          } else {
+            throw new Error(response.message || '解决工单失败')
+          }
+        } catch (error) {
+          console.error('解决工单失败:', error)
+          toast.error('解决失败', {
+            description: error instanceof Error ? error.message : '解决工单失败，请重试',
+          })
         }
       }
     },

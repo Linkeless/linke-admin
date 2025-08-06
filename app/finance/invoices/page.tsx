@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { DataTable } from '@/components/ui/data-table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,45 +13,42 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { 
-  Plus, 
-  Search, 
-  Filter, 
+  Plus,
+  Search,
   Download, 
-  FileText, 
-  DollarSign, 
-  Calendar,
-  TrendingUp,
+  FileText,
   AlertCircle,
   CheckCircle2,
-  Clock
+  Clock,
+  Settings,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 import { toast } from 'sonner'
-import Link from 'next/link'
 
-import { Invoice, InvoiceQueryParams, InvoiceStatistics } from '@/lib/invoice-types'
+import { Invoice, InvoiceQueryParams, InvoiceStatistics, InvoiceStatus } from '@/lib/invoice-types'
 import { invoiceService } from '@/lib/invoice-service'
 import { createColumns } from './columns'
+import { BulkActionsDialog } from './components'
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [statistics, setStatistics] = useState<InvoiceStatistics | null>(null)
-  const [loading, setLoading] = useState(true)
   const [statisticsLoading, setStatisticsLoading] = useState(true)
   const [totalCount, setTotalCount] = useState(0)
   const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
+  const [pageSize] = useState(10)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [dateFilter, setDateFilter] = useState<string>('all')
+  const [showBulkActions, setShowBulkActions] = useState(false)
+  const [selectedInvoices, setSelectedInvoices] = useState<Invoice[]>([])
 
   // 获取发票列表
   const fetchInvoices = useCallback(async () => {
     try {
-      setLoading(true)
       
       const params: InvoiceQueryParams = {
         page: currentPage,
@@ -65,7 +62,7 @@ export default function InvoicesPage() {
       }
 
       if (statusFilter !== 'all') {
-        params.status = statusFilter as any
+        params.status = statusFilter as InvoiceStatus
       }
 
       // 日期筛选
@@ -95,19 +92,35 @@ export default function InvoicesPage() {
 
       const response = await invoiceService.getInvoices(params)
       
+      // 调试信息
+      console.log('API Response:', response)
+      
       if (response.code === 0) {
-        setInvoices(response.data.items)
-        setTotalCount(response.data.total)
+        // 处理不同的响应数据结构
+        if (response.data && response.data.items) {
+          // 分页响应格式
+          setInvoices(response.data.items || [])
+          setTotalCount(response.data.total || 0)
+          console.log('Loaded paginated invoices:', response.data.items?.length, 'total:', response.data.total)
+        } else if (Array.isArray(response.data)) {
+          // 直接数组响应格式
+          setInvoices(response.data || [])
+          setTotalCount(response.data?.length || 0)
+          console.log('Loaded array invoices:', response.data?.length)
+        } else {
+          // 空数据或其他格式
+          setInvoices([])
+          setTotalCount(0)
+          console.log('No invoices data or unsupported format:', response.data)
+        }
       } else {
-        throw new Error(response.message)
+        throw new Error(response.message || '获取数据失败')
       }
     } catch (error) {
       console.error('获取发票列表失败:', error)
       toast.error('获取发票列表失败，请稍后重试')
       setInvoices([])
       setTotalCount(0)
-    } finally {
-      setLoading(false)
     }
   }, [currentPage, pageSize, searchQuery, statusFilter, dateFilter])
 
@@ -117,8 +130,11 @@ export default function InvoicesPage() {
       setStatisticsLoading(true)
       const response = await invoiceService.getInvoiceStatistics()
       
+      console.log('Statistics Response:', response)
+      
       if (response.code === 0) {
         setStatistics(response.data)
+        console.log('Loaded statistics:', response.data)
       } else {
         throw new Error(response.message)
       }
@@ -131,14 +147,14 @@ export default function InvoicesPage() {
   }, [])
 
   // 批量下载选中的发票
-  const handleBulkDownload = async (selectedInvoices: Invoice[]) => {
-    if (selectedInvoices.length === 0) {
+  const handleBulkDownload = useCallback(async (invoicesForDownload: Invoice[] = selectedInvoices) => {
+    if (invoicesForDownload.length === 0) {
       toast.error('请选择要下载的发票')
       return
     }
 
     try {
-      const invoiceIds = selectedInvoices.map(invoice => invoice.id)
+      const invoiceIds = invoicesForDownload.map(invoice => invoice.id)
       const blob = await invoiceService.bulkDownloadInvoices({
         invoice_ids: invoiceIds,
         format: 'zip'
@@ -146,12 +162,32 @@ export default function InvoicesPage() {
       
       const filename = `invoices-${new Date().toISOString().split('T')[0]}.zip`
       invoiceService.downloadFile(blob, filename)
-      toast.success(`成功下载 ${selectedInvoices.length} 张发票`)
+      toast.success(`成功下载 ${invoicesForDownload.length} 张发票`)
     } catch (error) {
       console.error('批量下载失败:', error)
       toast.error('批量下载失败，请稍后重试')
     }
+  }, [selectedInvoices])
+
+  // 使用ref来存储选择处理函数，避免重新渲染
+  const onSelectionChangeRef = useRef<(selectedInvoices: Invoice[]) => void>()
+  onSelectionChangeRef.current = (newSelectedInvoices: Invoice[]) => {
+    setSelectedInvoices(newSelectedInvoices)
   }
+
+  // 稳定的回调函数引用
+  const handleBulkActions = useCallback((newSelectedInvoices: Invoice[]) => {
+    onSelectionChangeRef.current?.(newSelectedInvoices)
+  }, [])
+
+  // 手动打开批量操作对话框
+  const openBulkActions = useCallback(() => {
+    if (selectedInvoices.length > 0) {
+      setShowBulkActions(true)
+    } else {
+      toast.error('请选择要操作的发票')
+    }
+  }, [selectedInvoices.length])
 
   // 发票更新回调
   const handleInvoiceUpdated = useCallback(() => {
@@ -209,8 +245,16 @@ export default function InvoicesPage() {
 
     if (!statistics) return null
 
-    const formatAmount = (amount: number) => 
-      invoiceService.formatAmount(amount, statistics.currency)
+    const formatAmount = (amount: number | undefined) => {
+      if (typeof amount !== 'number' || isNaN(amount)) {
+        return '¥0.00'
+      }
+      return invoiceService.formatAmount(amount, statistics?.currency)
+    }
+
+    const safeNumber = (value: number | undefined): number => {
+      return typeof value === 'number' && !isNaN(value) ? value : 0
+    }
 
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -220,9 +264,9 @@ export default function InvoicesPage() {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{statistics.total_invoices}</div>
+            <div className="text-2xl font-bold">{safeNumber(statistics.total_invoices)}</div>
             <p className="text-xs text-muted-foreground">
-              已发送 {statistics.sent_invoices} | 草稿 {statistics.draft_invoices}
+              已发送 {safeNumber(statistics.sent_invoices)} | 草稿 {safeNumber(statistics.draft_invoices)}
             </p>
           </CardContent>
         </Card>
@@ -233,7 +277,7 @@ export default function InvoicesPage() {
             <CheckCircle2 className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{statistics.paid_invoices}</div>
+            <div className="text-2xl font-bold text-green-600">{safeNumber(statistics.paid_invoices)}</div>
             <p className="text-xs text-muted-foreground">
               {formatAmount(statistics.paid_amount)}
             </p>
@@ -247,7 +291,7 @@ export default function InvoicesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {statistics.total_invoices - statistics.paid_invoices - statistics.void_invoices}
+              {safeNumber(statistics.total_invoices) - safeNumber(statistics.paid_invoices) - safeNumber(statistics.void_invoices)}
             </div>
             <p className="text-xs text-muted-foreground">
               {formatAmount(statistics.pending_amount)}
@@ -261,7 +305,7 @@ export default function InvoicesPage() {
             <AlertCircle className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{statistics.overdue_invoices}</div>
+            <div className="text-2xl font-bold text-red-600">{safeNumber(statistics.overdue_invoices)}</div>
             <p className="text-xs text-muted-foreground">
               {formatAmount(statistics.overdue_amount)}
             </p>
@@ -282,11 +326,20 @@ export default function InvoicesPage() {
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Button asChild>
-            <Link href="/finance/invoices/create">
-              <Plus className="mr-2 h-4 w-4" />
-              创建发票
-            </Link>
+          <Button 
+            variant="outline"
+            onClick={() => {
+              // 这里可以添加批量下载选中发票的逻辑
+              // 由于没有选中的发票，我们可以提示用户选择
+              toast.info('请在表格中选择要下载的发票，然后使用表格下方的批量操作按钮')
+            }}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            批量下载
+          </Button>
+          <Button disabled>
+            <Plus className="mr-2 h-4 w-4" />
+            创建发票
           </Button>
         </div>
       </div>
@@ -354,22 +407,81 @@ export default function InvoicesPage() {
 
       {/* 发票表格 */}
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="space-y-4">
+          {/* 操作按钮行 */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              {selectedInvoices.length > 0 && (
+                <Button
+                  variant="outline"
+                  onClick={openBulkActions}
+                  className="h-8"
+                >
+                  <Settings className="mr-2 h-4 w-4" />
+                  批量操作 ({selectedInvoices.length})
+                </Button>
+              )}
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleBulkDownload()}
+                disabled={selectedInvoices.length === 0}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                批量下载
+              </Button>
+            </div>
+          </div>
+
+          {/* 数据表格 */}
           <DataTable
             columns={columns}
-            data={invoices}
-            loading={loading}
-            totalCount={totalCount}
-            currentPage={currentPage}
-            pageSize={pageSize}
-            onPageChange={setCurrentPage}
-            onPageSizeChange={setPageSize}
-            onBulkAction={handleBulkDownload}
-            bulkActionLabel="批量下载"
-            bulkActionIcon={<Download className="h-4 w-4" />}
+            data={invoices || []}
+            searchKey="invoice_number"
+            searchPlaceholder="搜索发票号..."
+            onSelectionChange={handleBulkActions}
           />
+          
+          {/* 简单分页信息 */}
+          {totalCount > 0 && (
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <div>
+                共 {totalCount} 条记录，第 {currentPage} 页，每页 {pageSize} 条
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage <= 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  上一页
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => prev + 1)}
+                  disabled={currentPage * pageSize >= totalCount}
+                >
+                  下一页
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      {/* 批量操作对话框 */}
+      <BulkActionsDialog
+        open={showBulkActions}
+        onOpenChange={setShowBulkActions}
+        selectedInvoices={selectedInvoices}
+        onActionComplete={handleInvoiceUpdated}
+      />
     </div>
   )
 }

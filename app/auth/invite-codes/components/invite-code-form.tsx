@@ -99,9 +99,18 @@ export function InviteCodeForm({
     await onSubmit(submitData)
   }
 
+  const handleFormAction = async (formData: FormData) => {
+    // Trigger form validation and submission using react-hook-form
+    const isValid = await form.trigger()
+    if (isValid) {
+      const values = form.getValues()
+      await handleSubmit(values)
+    }
+  }
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+      <form action={handleFormAction} className="space-y-6">
         <FormField
           control={form.control}
           name="code"

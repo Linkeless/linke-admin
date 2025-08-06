@@ -141,20 +141,28 @@ export interface BatchCouponRequest {
 export interface CouponsApiResponse {
   code: number
   message: string
-  data: CouponResponse[]
-  total: number
-  limit: number
-  offset: number
+  data: {
+    items: CouponResponse[]
+    pagination: {
+      page: number
+      limit: number
+      total: number
+    }
+  }
 }
 
 // 优惠码使用记录API响应  
 export interface CouponUsagesApiResponse {
   code: number
   message: string
-  data: CouponUsageResponse[]
-  total: number
-  limit: number
-  offset: number
+  data: {
+    items: CouponUsageResponse[]
+    pagination: {
+      page: number
+      limit: number
+      total: number
+    }
+  }
 }
 
 // API 响应基础类型

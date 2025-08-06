@@ -48,8 +48,8 @@ export default function CouponsPage() {
       console.log('Coupons API Response:', response) // 调试信息
       
       if (response.code === 0 && response.data) {
-        setCoupons(response.data || [])
-        setTotalItems(response.total || 0)
+        setCoupons(response.data.items || [])
+        setTotalItems(response.data.pagination.total || 0)
         setCurrentPage(page)
       } else {
         console.error('API返回错误:', response)

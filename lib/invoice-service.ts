@@ -12,6 +12,11 @@ import {
   SendInvoiceRequest,
   CustomSendRequest,
   BulkDownloadRequest,
+  BulkMarkPaidRequest,
+  BulkVoidRequest,
+  BulkResendRequest,
+  BulkRegeneratePdfRequest,
+  BulkOperationResponse,
   InvoicesApiResponse,
   InvoiceApiResponse,
   InvoiceStatisticsApiResponse,
@@ -129,6 +134,26 @@ class InvoiceService {
     return api.downloadBlob('/invoice/bulk-download', 'POST', data)
   }
 
+  // 批量标记为已付款
+  async bulkMarkPaid(data: BulkMarkPaidRequest): Promise<BulkOperationResponse> {
+    return api.post<BulkOperationResponse>('/admin/invoices/bulk/mark-paid', data)
+  }
+
+  // 批量重新发送
+  async bulkResend(data: BulkResendRequest): Promise<BulkOperationResponse> {
+    return api.post<BulkOperationResponse>('/admin/invoices/bulk/resend', data)
+  }
+
+  // 批量作废
+  async bulkVoid(data: BulkVoidRequest): Promise<BulkOperationResponse> {
+    return api.post<BulkOperationResponse>('/admin/invoices/bulk/void', data)
+  }
+
+  // 批量重新生成PDF
+  async bulkRegeneratePdf(data: BulkRegeneratePdfRequest): Promise<BulkOperationResponse> {
+    return api.post<BulkOperationResponse>('/admin/invoices/bulk/regenerate-pdf', data)
+  }
+
   // 获取发票统计信息
   async getInvoiceStatistics(): Promise<InvoiceStatisticsApiResponse> {
     return api.get<InvoiceStatisticsApiResponse>('/invoice/statistics')
@@ -179,12 +204,22 @@ class InvoiceService {
   }
 
   // 工具方法：格式化金额
-  formatAmount(amount: number, currency: string): string {
-    return new Intl.NumberFormat('zh-CN', {
-      style: 'currency',
-      currency: currency.toUpperCase(),
-      minimumFractionDigits: 2,
-    }).format(amount)
+  formatAmount(amount: number, currency?: string): string {
+    // 默认货币为人民币
+    const safeCurrency = currency || 'CNY'
+    
+    try {
+      return new Intl.NumberFormat('zh-CN', {
+        style: 'currency',
+        currency: safeCurrency.toUpperCase(),
+        minimumFractionDigits: 2,
+      }).format(amount)
+    } catch (error) {
+      // 如果货币代码无效，回退到数字格式
+      return new Intl.NumberFormat('zh-CN', {
+        minimumFractionDigits: 2,
+      }).format(amount)
+    }
   }
 
   // 工具方法：获取状态标签

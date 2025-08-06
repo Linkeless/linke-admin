@@ -92,7 +92,7 @@ export function CreateServerDialog({ onServerCreated }: CreateServerDialogProps)
     },
   })
 
-  const onSubmit = async (data: FormData) => {
+  const handleSubmit = async (data: FormData) => {
     try {
       setLoading(true)
       
@@ -139,6 +139,15 @@ export function CreateServerDialog({ onServerCreated }: CreateServerDialogProps)
     }
   }
 
+  const handleFormAction = async (formData: FormData) => {
+    // Trigger form validation and submission using react-hook-form
+    const isValid = await form.trigger()
+    if (isValid) {
+      const values = form.getValues()
+      await handleSubmit(values)
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -156,7 +165,7 @@ export function CreateServerDialog({ onServerCreated }: CreateServerDialogProps)
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form action={handleFormAction} className="space-y-4">
             {/* 服务器名称 */}
             <FormField
               control={form.control}

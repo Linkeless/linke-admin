@@ -8,7 +8,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { ShoppingCart } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { ShoppingCart, Plus } from "lucide-react"
 import { PageHeader } from "@/components/layout/page-header"
 
 import { orderService } from "@/lib/order-service"
@@ -17,6 +18,7 @@ import { createColumns } from "./columns"
 import { DataTable } from "@/components/ui/data-table"
 import { OrderStatsCards } from "@/components/finance/orders/order-stats-cards"
 import { OrderFilters } from "@/components/finance/orders/order-filters"
+import { OrderDetailDialog, CreateOrderDialog } from "./components"
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<SubscriptionOrderResponse[]>([])
@@ -38,6 +40,11 @@ export default function OrdersPage() {
     end_date: '',
   })
 
+  // 对话框状态
+  const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [showDetailDialog, setShowDetailDialog] = useState(false)
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null)
+
   const loadData = useCallback(async (page: number = 1, limit: number = 10, currentFilters = filters) => {
     try {
       setLoading(true)
@@ -46,7 +53,7 @@ export default function OrdersPage() {
       const offset = (page - 1) * limit
       
       // 构建查询参数
-      const queryParams: any = {
+      const queryParams: Record<string, string | number> = {
         offset: offset,
         limit: limit,
         sort_by: 'created_at',
@@ -56,7 +63,14 @@ export default function OrdersPage() {
       // 添加筛选条件
       Object.entries(currentFilters).forEach(([key, value]) => {
         if (value && value !== '' && value !== 'all') {
-          queryParams[key] = value
+          // 映射参数名称以匹配API规范
+          if (key === 'start_date') {
+            queryParams.date_from = value
+          } else if (key === 'end_date') {
+            queryParams.date_to = value
+          } else {
+            queryParams[key] = value
+          }
         }
       })
       
@@ -87,11 +101,16 @@ export default function OrdersPage() {
     loadData(currentPage, pageSize)
   }, [loadData, currentPage, pageSize])
 
-  const handleFiltersChange = useCallback((newFilters: any) => {
+  const handleFiltersChange = useCallback((newFilters: typeof filters) => {
     setFilters(newFilters)
     setCurrentPage(1) // 重置到第一页
     loadData(1, pageSize, newFilters)
   }, [loadData, pageSize])
+
+  const handleViewDetail = useCallback((orderId: number) => {
+    setSelectedOrderId(orderId)
+    setShowDetailDialog(true)
+  }, [])
 
   useEffect(() => {
     loadData(currentPage, pageSize)
@@ -102,6 +121,12 @@ export default function OrdersPage() {
       <PageHeader 
         title="订单管理" 
         description="管理系统订单和支付记录"
+        action={
+          <Button onClick={() => setShowCreateDialog(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            创建订单
+          </Button>
+        }
       />
       
       <main className="flex-1 p-6">
@@ -132,7 +157,8 @@ export default function OrdersPage() {
                   {/* 数据表格（支持服务端分页） */}
                   <DataTable 
                     columns={createColumns({ 
-                      onOrderUpdated: handleOrderUpdated
+                      onOrderUpdated: handleOrderUpdated,
+                      onViewDetail: handleViewDetail
                     })} 
                     data={orders}
                     searchPlaceholder="搜索订单..."
@@ -176,6 +202,20 @@ export default function OrdersPage() {
           </Card>
         </div>
       </main>
+      
+      {/* 对话框 */}
+      <CreateOrderDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onOrderCreated={handleOrderUpdated}
+      />
+      
+      <OrderDetailDialog
+        open={showDetailDialog}
+        onOpenChange={setShowDetailDialog}
+        orderId={selectedOrderId}
+        onOrderUpdated={handleOrderUpdated}
+      />
     </div>
   )
 }

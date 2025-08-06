@@ -64,7 +64,7 @@ export function ConfigForm() {
     },
   })
 
-  const onSubmit = async (data: ConfigFormData) => {
+  const handleSubmit = async (data: ConfigFormData) => {
     setIsSaving(true)
     try {
       const result = await updateConfig(data)
@@ -86,6 +86,15 @@ export function ConfigForm() {
     }
   }
 
+  const handleFormAction = async (formData: FormData) => {
+    // Trigger form validation and submission using react-hook-form
+    const isValid = await form.trigger()
+    if (isValid) {
+      const values = form.getValues()
+      await handleSubmit(values)
+    }
+  }
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -101,7 +110,7 @@ export function ConfigForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form action={handleFormAction} className="space-y-6">
         {/* 基础重试设置 */}
         <div className="space-y-4">
           <div className="flex items-center space-x-2">

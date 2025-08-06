@@ -89,6 +89,15 @@ export function LoginForm({
     }
   }, [onSubmit, loading, isSubmitting])
 
+  const handleFormAction = async (formData: FormData) => {
+    // Trigger form validation and submission using react-hook-form
+    const isValid = await form.trigger()
+    if (isValid) {
+      const values = form.getValues()
+      await handleFormSubmit(values)
+    }
+  }
+
   const handleOAuthLogin = useCallback(async (provider: string) => {
     if (loading || isSubmitting || oauthLoading) return
     
@@ -130,7 +139,7 @@ export function LoginForm({
       )}
       
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="grid gap-6" noValidate>
+        <form action={handleFormAction} className="grid gap-6" noValidate>
           {/* 邮箱字段 */}
           <FormField
             control={form.control}

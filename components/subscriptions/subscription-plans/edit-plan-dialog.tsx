@@ -85,7 +85,7 @@ export function EditPlanDialog({ plan, onPlanUpdated }: EditPlanDialogProps) {
     },
   })
 
-  const onSubmit = async (data: FormData) => {
+  const handleSubmit = async (data: FormData) => {
     try {
       setLoading(true)
 
@@ -107,6 +107,15 @@ export function EditPlanDialog({ plan, onPlanUpdated }: EditPlanDialogProps) {
     }
   }
 
+  const handleFormAction = async (formData: FormData) => {
+    // Trigger form validation and submission using react-hook-form
+    const isValid = await form.trigger()
+    if (isValid) {
+      const values = form.getValues()
+      await handleSubmit(values)
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -123,7 +132,7 @@ export function EditPlanDialog({ plan, onPlanUpdated }: EditPlanDialogProps) {
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form action={handleFormAction} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* 计划名称 */}
               <FormField

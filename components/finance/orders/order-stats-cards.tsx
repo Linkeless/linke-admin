@@ -25,7 +25,15 @@ export function OrderStatsCards() {
   const loadStats = async () => {
     try {
       setLoading(true)
-      const response = await orderService.getOrderStats('month')
+      // 使用当月的日期范围
+      const now = new Date()
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      
+      const response = await orderService.getOrderAnalytics({
+        from_date: firstDay.toISOString().split('T')[0],
+        to_date: lastDay.toISOString().split('T')[0]
+      })
       
       if (response.code === 0 && response.data) {
         setStats(response.data)

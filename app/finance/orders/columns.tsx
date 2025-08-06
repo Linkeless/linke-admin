@@ -11,48 +11,31 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MoreHorizontal, Eye, RefreshCw, Ban, DollarSign, ChevronsUpDown } from 'lucide-react'
+import { MoreHorizontal, Eye, Ban, ChevronsUpDown } from 'lucide-react'
 import { SubscriptionOrderResponse } from '@/lib/order-types'
 import { orderService } from '@/lib/order-service'
 import { toast } from 'sonner'
 
 interface ColumnsProps {
   onOrderUpdated?: () => void
+  onViewDetail?: (orderId: number) => void
 }
 
-export function createColumns({ onOrderUpdated }: ColumnsProps): ColumnDef<SubscriptionOrderResponse>[] {
-  const handleUpdateStatus = async (order: SubscriptionOrderResponse, newStatus: string) => {
-    try {
-      await orderService.updateOrderStatus(order.id, {
-        status: newStatus as 'pending' | 'paid' | 'failed' | 'cancelled' | 'refunded',
-        admin_confirmed: true,
-        reason: `状态更新为 ${newStatus}`,
-        notify_user: true,
-      })
-      toast.success(`订单状态已更新为 ${newStatus}`)
-      onOrderUpdated?.()
-    } catch (error) {
-      console.error('更新订单状态失败:', error)
-      toast.error('更新订单状态时发生错误，请稍后重试')
-    }
-  }
-
-  const handleRefund = async (order: SubscriptionOrderResponse) => {
-    if (!confirm(`确定要退款订单"${order.order_number}"吗？`)) {
+export function createColumns({ onOrderUpdated, onViewDetail }: ColumnsProps): ColumnDef<SubscriptionOrderResponse>[] {
+  const handleCancelOrder = async (order: SubscriptionOrderResponse, reason: string) => {
+    if (!confirm(`确定要取消订单"${order.order_number}"吗？`)) {
       return
     }
 
     try {
-      await orderService.refundOrder(order.id, {
-        admin_confirmed: true,
-        reason: '管理员操作退款',
-        notify_user: true,
+      await orderService.cancelOrder(order.id, {
+        reason: reason
       })
-      toast.success(`订单"${order.order_number}"已成功退款`)
+      toast.success(`订单"${order.order_number}"已取消`)
       onOrderUpdated?.()
     } catch (error) {
-      console.error('退款失败:', error)
-      toast.error('退款时发生错误，请稍后重试')
+      console.error('取消订单失败:', error)
+      toast.error('取消订单时发生错误，请稍后重试')
     }
   }
 
@@ -60,6 +43,7 @@ export function createColumns({ onOrderUpdated }: ColumnsProps): ColumnDef<Subsc
     const statusConfig = {
       pending: { label: '待支付', variant: 'secondary' as const },
       paid: { label: '已支付', variant: 'default' as const },
+      completed: { label: '已完成', variant: 'default' as const },
       failed: { label: '支付失败', variant: 'destructive' as const },
       cancelled: { label: '已取消', variant: 'outline' as const },
       refunded: { label: '已退款', variant: 'secondary' as const },
@@ -276,31 +260,15 @@ export function createColumns({ onOrderUpdated }: ColumnsProps): ColumnDef<Subsc
                 复制订单ID
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onViewDetail?.(order.id)}>
                 <Eye className="mr-2 h-4 w-4" />
                 查看详情
               </DropdownMenuItem>
               
-              {order.status === 'pending' && (
-                <>
-                  <DropdownMenuItem onClick={() => handleUpdateStatus(order, 'paid')}>
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    标记为已支付
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleUpdateStatus(order, 'cancelled')}>
-                    <Ban className="mr-2 h-4 w-4" />
-                    取消订单
-                  </DropdownMenuItem>
-                </>
-              )}
-              
-              {order.status === 'paid' && (
-                <DropdownMenuItem
-                  onClick={() => handleRefund(order)}
-                  className="text-red-600"
-                >
-                  <DollarSign className="mr-2 h-4 w-4" />
-                  退款
+              {(order.status === 'pending' || order.status === 'failed') && (
+                <DropdownMenuItem onClick={() => handleCancelOrder(order, '管理员手动取消')}>
+                  <Ban className="mr-2 h-4 w-4" />
+                  取消订单
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>

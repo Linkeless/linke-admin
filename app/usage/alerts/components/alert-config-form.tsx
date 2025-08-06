@@ -112,6 +112,15 @@ export default function AlertConfigForm({
     }
   };
 
+  const handleFormAction = async (formData: FormData) => {
+    // Trigger form validation and submission using react-hook-form
+    const isValid = await form.trigger()
+    if (isValid) {
+      const values = form.getValues()
+      await handleSubmit(values)
+    }
+  };
+
   const handleTestNotification = async () => {
     const formData = form.getValues();
     
@@ -154,7 +163,7 @@ export default function AlertConfigForm({
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+            <form action={handleFormAction} className="space-y-6">
               {/* 基本信息 */}
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">基本信息</h3>

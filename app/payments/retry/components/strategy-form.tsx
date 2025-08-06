@@ -123,6 +123,15 @@ export function StrategyForm({ strategy, onSubmit, onCancel, loading }: Strategy
     }
   }
 
+  const handleFormAction = async (formData: FormData) => {
+    // Trigger form validation and submission using react-hook-form
+    const isValid = await form.trigger()
+    if (isValid) {
+      const values = form.getValues()
+      await handleSubmit(values)
+    }
+  }
+
   // 计算预估总时间
   const calculateTotalTime = (intervals: number[]) => {
     const totalSeconds = intervals.reduce((sum, interval) => sum + interval, 0)
@@ -160,7 +169,7 @@ export function StrategyForm({ strategy, onSubmit, onCancel, loading }: Strategy
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+      <form action={handleFormAction} className="space-y-6">
         {/* 验证错误显示 */}
         {validationErrors.length > 0 && (
           <Alert variant="destructive">

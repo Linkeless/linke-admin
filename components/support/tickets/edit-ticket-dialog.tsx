@@ -27,12 +27,16 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
+import { Loader2, User, Calendar, Hash } from 'lucide-react'
+import { toast } from 'sonner'
 
 import { ticketService } from '@/lib/ticket-service'
 import { TicketResponse, UpdateTicketRequest } from '@/lib/ticket-types'
+import type { EditTicketDialogProps } from './types'
 
 // 表单验证 schema
 const formSchema = z.object({
@@ -47,13 +51,6 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>
 
-interface EditTicketDialogProps {
-  ticket: TicketResponse | null
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onTicketUpdated: () => void
-}
-
 export function EditTicketDialog({ 
   ticket, 
   open, 
@@ -62,6 +59,7 @@ export function EditTicketDialog({
 }: EditTicketDialogProps) {
   const [loading, setLoading] = useState(false)
   const [submitError, setSubmitError] = useState<string>('')
+  // Use toast from sonner directly
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -91,7 +89,7 @@ export function EditTicketDialog({
     }
   }, [ticket, form])
 
-  const handleSubmit = async (data: FormData) => {
+  const handleSubmitForm = async (data: FormData) => {
     if (!ticket) return
     
     try {
@@ -113,29 +111,71 @@ export function EditTicketDialog({
       if (response.code === 0) {
         onOpenChange(false)
         onTicketUpdated()
+        toast.success("更新成功", {
+          description: `工单 ${ticket.ticket_no} 已更新`,
+        })
       } else {
         throw new Error(response.message || '更新工单失败')
       }
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : '更新工单失败')
+      const errorMessage = error instanceof Error ? error.message : '更新工单失败'
+      setSubmitError(errorMessage)
+      toast.error("更新失败", {
+        description: errorMessage,
+      })
     } finally {
       setLoading(false)
     }
   }
 
+  const handleFormAction = async (formData: FormData) => {
+    // Trigger form validation and submission using react-hook-form
+    const isValid = await form.trigger()
+    if (isValid) {
+      const values = form.getValues()
+      await handleSubmitForm(values)
+    }
+  }
+
+  const handleClose = () => {
+    onOpenChange(false)
+    setSubmitError('')
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>编辑工单</DialogTitle>
-          <DialogDescription>
-            修改工单信息。工单号: {ticket?.ticket_no}
+          <DialogDescription className="flex flex-col gap-2">
+            <span>修改工单信息</span>
+            {ticket && (
+              <div className="flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-1">
+                  <Hash className="h-3 w-3" />
+                  <span className="font-mono">{ticket.ticket_no}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  <span>{ticketService.formatDateTime(ticket.created_at)}</span>
+                </div>
+                {ticket.user && (
+                  <div className="flex items-center gap-1">
+                    <User className="h-3 w-3" />
+                    <span>{ticket.user.username || ticket.user.email}</span>
+                  </div>
+                )}
+                <Badge variant="secondary" className={`text-xs ${ticketService.getStatusInfo(ticket.status).color}`}>
+                  {ticketService.getStatusInfo(ticket.status).label}
+                </Badge>
+              </div>
+            )}
           </DialogDescription>
         </DialogHeader>
         
         {ticket && (
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+            <form action={handleFormAction} className="space-y-6">
               {/* 基本信息 */}
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">基本信息</h3>
@@ -288,11 +328,18 @@ export function EditTicketDialog({
               )}
 
               <div className="flex justify-end gap-3">
-                <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+                <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>
                   取消
                 </Button>
                 <Button type="submit" disabled={loading}>
-                  {loading ? '保存中...' : '保存更改'}
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      保存中...
+                    </>
+                  ) : (
+                    '保存更改'
+                  )}
                 </Button>
               </div>
             </form>

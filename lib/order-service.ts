@@ -2,9 +2,9 @@ import {
   SubscriptionOrderResponse,
   OrderQueryParams,
   OrderStatsResponse,
-  BulkUpdateRequest,
-  RefundRequest,
-  UpdateOrderStatusRequest,
+  OrderAnalyticsParams,
+  CancelOrderRequest,
+  CreateSubscriptionOrderRequest,
   OrdersApiResponse,
   ApiResponse
 } from './order-types'
@@ -47,7 +47,9 @@ class OrderService {
     }
   }
 
-  // 获取订单列表 (带分页和筛选)
+  // === 管理员接口 ===
+
+  // 获取订单列表 (管理员) - 带分页和筛选
   async getOrders(params?: OrderQueryParams): Promise<OrdersApiResponse> {
     const searchParams = new URLSearchParams()
     
@@ -59,65 +61,92 @@ class OrderService {
       })
     }
     const queryString = searchParams.toString()
-    const endpoint = `/admin/orders${queryString ? `?${queryString}` : ''}`
+    const endpoint = `/admin/subscriptions/orders${queryString ? `?${queryString}` : ''}`
     
     return this.request<OrdersApiResponse>(endpoint, {
       method: 'GET',
     })
   }
 
-  // 获取单个订单详情
+  // 获取单个订单详情 (管理员)
   async getOrderById(id: number): Promise<ApiResponse<SubscriptionOrderResponse>> {
-    return this.request<ApiResponse<SubscriptionOrderResponse>>(`/admin/orders/${id}`, {
+    return this.request<ApiResponse<SubscriptionOrderResponse>>(`/admin/subscriptions/orders/${id}`, {
       method: 'GET',
     })
   }
 
-  // 获取订单统计
-  async getOrderStats(period: string = 'month', startDate?: string, endDate?: string): Promise<ApiResponse<OrderStatsResponse>> {
+  // 获取订单统计 (管理员)
+  async getOrderAnalytics(params?: OrderAnalyticsParams): Promise<ApiResponse<OrderStatsResponse>> {
     const searchParams = new URLSearchParams()
-    searchParams.append('period', period)
     
-    if (startDate) searchParams.append('start_date', startDate)
-    if (endDate) searchParams.append('end_date', endDate)
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          searchParams.append(key, String(value))
+        }
+      })
+    }
     
     const queryString = searchParams.toString()
-    const endpoint = `/admin/orders/stats${queryString ? `?${queryString}` : ''}`
+    const endpoint = `/admin/subscriptions/analytics/orders${queryString ? `?${queryString}` : ''}`
     
     return this.request<ApiResponse<OrderStatsResponse>>(endpoint, {
       method: 'GET',
     })
   }
 
-  // 批量操作订单
-  async bulkUpdateOrders(data: BulkUpdateRequest): Promise<ApiResponse<void>> {
-    return this.request<ApiResponse<void>>('/admin/orders/bulk', {
+  // 取消订单 (管理员)
+  async cancelOrder(id: number, data: CancelOrderRequest): Promise<ApiResponse<SubscriptionOrderResponse>> {
+    return this.request<ApiResponse<SubscriptionOrderResponse>>(`/admin/subscriptions/orders/${id}/cancel`, {
       method: 'POST',
       body: JSON.stringify(data),
     })
   }
 
-  // 处理订单退款
-  async refundOrder(id: number, data: RefundRequest): Promise<ApiResponse<SubscriptionOrderResponse>> {
-    return this.request<ApiResponse<SubscriptionOrderResponse>>(`/admin/orders/${id}/refund`, {
+  // === 用户端接口 ===
+
+  // 创建订阅订单 (用户)
+  async createSubscriptionOrder(data: CreateSubscriptionOrderRequest): Promise<ApiResponse<SubscriptionOrderResponse>> {
+    return this.request<ApiResponse<SubscriptionOrderResponse>>('/subscription/orders', {
       method: 'POST',
       body: JSON.stringify(data),
     })
   }
 
-  // 更新订单状态
-  async updateOrderStatus(id: number, data: UpdateOrderStatusRequest): Promise<ApiResponse<SubscriptionOrderResponse>> {
-    return this.request<ApiResponse<SubscriptionOrderResponse>>(`/admin/orders/${id}/status`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
+  // 获取当前用户的订单列表 (用户)
+  async getMyOrders(params?: { limit?: number; offset?: number }): Promise<OrdersApiResponse> {
+    const searchParams = new URLSearchParams()
+    
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          searchParams.append(key, String(value))
+        }
+      })
+    }
+    const queryString = searchParams.toString()
+    const endpoint = `/subscription/orders/my${queryString ? `?${queryString}` : ''}`
+    
+    return this.request<OrdersApiResponse>(endpoint, {
+      method: 'GET',
     })
   }
+
+  // 获取订单详情 (用户)
+  async getMyOrderById(id: number): Promise<ApiResponse<SubscriptionOrderResponse>> {
+    return this.request<ApiResponse<SubscriptionOrderResponse>>(`/subscription/orders/${id}`, {
+      method: 'GET',
+    })
+  }
+
+  // === 工具方法 ===
 
   // 获取订单状态选项 (静态数据)
   getOrderStatuses(): { value: string; label: string; color: string }[] {
     return [
       { value: 'pending', label: '待支付', color: 'yellow' },
       { value: 'paid', label: '已支付', color: 'green' },
+      { value: 'completed', label: '已完成', color: 'green' },
       { value: 'failed', label: '支付失败', color: 'red' },
       { value: 'cancelled', label: '已取消', color: 'gray' },
       { value: 'refunded', label: '已退款', color: 'blue' },
@@ -150,6 +179,16 @@ class OrderService {
       { value: 'stripe', label: 'Stripe' },
       { value: 'epay', label: '易支付' },
       { value: 'paypal', label: 'PayPal' },
+    ]
+  }
+
+  // 获取退款状态选项 (静态数据)
+  getRefundStatuses(): { value: string; label: string; color: string }[] {
+    return [
+      { value: 'none', label: '无退款', color: 'gray' },
+      { value: 'partial', label: '部分退款', color: 'yellow' },
+      { value: 'full', label: '全额退款', color: 'blue' },
+      { value: 'processing', label: '退款处理中', color: 'orange' },
     ]
   }
 }

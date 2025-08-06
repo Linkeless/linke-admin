@@ -127,6 +127,15 @@ export function SubscriptionForm({ mode, subscriptionId, initialData }: Subscrip
     }
   }
 
+  const handleFormAction = async (formData: FormData) => {
+    // Trigger form validation and submission using react-hook-form
+    const isValid = await form.trigger()
+    if (isValid) {
+      const values = form.getValues()
+      await handleSubmitForm(values)
+    }
+  }
+
   const populateForm = (subscription: UserSubscription) => {
     form.reset({
       user_id: subscription.user_id || 0,
@@ -156,7 +165,7 @@ export function SubscriptionForm({ mode, subscriptionId, initialData }: Subscrip
     }
   }
 
-  const onSubmit = async (data: SubscriptionFormData) => {
+  const handleSubmitForm = async (data: SubscriptionFormData) => {
     try {
       setSubmitLoading(true)
       setError(null)
@@ -240,7 +249,7 @@ export function SubscriptionForm({ mode, subscriptionId, initialData }: Subscrip
       )}
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
+        <form action={handleFormAction} className="space-y-4 sm:space-y-6">
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
             {/* 左侧主要信息 */}
             <div className="xl:col-span-2 space-y-4 sm:space-y-6">

@@ -328,12 +328,6 @@ export default function UsagePage() {
                     分析报告
                   </a>
                 </Button>
-                <Button variant="outline" className="w-full justify-start" asChild>
-                  <a href="/usage/admin">
-                    <Users className="mr-2 h-4 w-4" />
-                    管理工具
-                  </a>
-                </Button>
               </CardContent>
             </Card>
           </div>

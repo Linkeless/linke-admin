@@ -6,7 +6,7 @@ export interface SubscriptionOrderResponse {
   status: 'pending' | 'paid' | 'failed' | 'cancelled' | 'refunded'
   
   // 用户信息
-  user_id: number
+  user_id?: number
   user?: {
     id: number
     email: string
@@ -14,21 +14,24 @@ export interface SubscriptionOrderResponse {
   }
   
   // 订阅信息
-  subscription_plan_id: number
+  subscription_plan_id?: number
   subscription_plan?: {
     id: number
     name: string
     price: number
   }
-  user_subscription_id?: number
+  subscription_order_id?: number
+  subscription_order?: {
+    // Basic subscription order info
+    id: number
+    [key: string]: unknown
+  }
   
   // 金额信息
   amount: number
-  setup_fee: number
   discount_amount: number
   discount_type?: string
   discount_value?: number
-  total_amount: number
   currency: string
   
   // 优惠券信息
@@ -43,6 +46,8 @@ export interface SubscriptionOrderResponse {
   // 退款信息
   refund_amount?: number
   refund_reason?: string
+  refund_status?: string
+  refundable_amount?: number
   refunded_at?: string
   
   // 发票信息
@@ -50,36 +55,37 @@ export interface SubscriptionOrderResponse {
   invoice_status?: string
   invoiced_at?: string
   
+  // 备注信息
+  remark?: string
+  
   // 账期信息
   billing_period_start: string
   billing_period_end: string
   
   // 时间戳
   created_at: string
-  updated_at: string
+  updated_at?: string
   paid_at?: string
 }
 
-// 订单查询参数
+// 订单查询参数 (基于 swagger API 规格)
 export interface OrderQueryParams {
   user_id?: number
   status?: 'pending' | 'paid' | 'failed' | 'cancelled' | 'refunded'
   order_type?: 'new' | 'renewal' | 'upgrade' | 'downgrade'
-  payment_method?: string
-  payment_gateway?: string
-  min_amount?: number
-  max_amount?: number
-  start_date?: string
-  end_date?: string
-  coupon_code?: string
-  search?: string
-  sort_by?: 'created_at' | 'paid_at' | 'amount' | 'total_amount'
-  sort_order?: 'asc' | 'desc'
+  date_from?: string // YYYY-MM-DD format
+  date_to?: string   // YYYY-MM-DD format
   limit?: number
   offset?: number
 }
 
-// 订单统计响应
+// 订单统计请求参数
+export interface OrderAnalyticsParams {
+  from_date?: string // YYYY-MM-DD format
+  to_date?: string   // YYYY-MM-DD format
+}
+
+// 订单统计响应 (基于 swagger API)
 export interface OrderStatsResponse {
   total_orders: number
   paid_orders: number
@@ -93,32 +99,23 @@ export interface OrderStatsResponse {
   conversion_rate: number
 }
 
-// 批量操作请求
-export interface BulkUpdateRequest {
-  admin_confirmed: boolean
-  operation: 'cancel' | 'refund' | 'export'
-  order_ids: number[]
+// 取消订单请求 (基于 swagger API)
+export interface CancelOrderRequest {
   reason?: string
-  notes?: string
 }
 
-// 退款请求
-export interface RefundRequest {
-  admin_confirmed: boolean
-  amount?: number
-  reason: string
-  refund_method?: string
-  notes?: string
-  notify_user?: boolean
-}
-
-// 更新订单状态请求
-export interface UpdateOrderStatusRequest {
-  status: 'pending' | 'paid' | 'failed' | 'cancelled' | 'refunded'
-  reason?: string
-  notes?: string
-  notify_user?: boolean
-  admin_confirmed: boolean
+// 创建订单请求 (基于 swagger API)
+export interface CreateSubscriptionOrderRequest {
+  user_id: number
+  subscription_plan_id: number
+  order_type: 'new' | 'renewal' | 'upgrade' | 'downgrade'
+  payment_method: string
+  payment_gateway: string
+  coupon_code?: string
+  payment_method_id?: number
+  return_url?: string
+  use_default_payment?: boolean
+  metadata?: string
 }
 
 // 订单列表API响应

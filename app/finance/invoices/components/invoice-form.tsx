@@ -43,6 +43,7 @@ import {
   InvoiceTemplate
 } from '@/lib/invoice-types'
 import { invoiceService } from '@/lib/invoice-service'
+import { UserSelector } from './user-selector'
 
 // 表单验证模式
 const invoiceFormSchema = z.object({
@@ -107,7 +108,7 @@ export function InvoiceForm({ invoice, onSubmit, onCancel, loading = false }: In
       due_date: invoice?.due_date.split('T')[0] || '',
       currency: invoice?.currency || 'CNY',
       language: invoice?.language || 'zh',
-      template_id: invoice?.template_id,
+      template_id: invoice?.template_id || undefined,
       billing_address: invoice?.billing_address || {},
       line_items: invoice?.line_items?.map(item => ({
         description: item.description,
@@ -127,8 +128,8 @@ export function InvoiceForm({ invoice, onSubmit, onCancel, loading = false }: In
       notes: invoice?.notes || '',
       terms: invoice?.terms || '',
       footer: invoice?.footer || '',
-      order_id: invoice?.order_id,
-      subscription_id: invoice?.subscription_id,
+      order_id: invoice?.order_id || undefined,
+      subscription_id: invoice?.subscription_id || undefined,
     }
   })
 
@@ -212,6 +213,15 @@ export function InvoiceForm({ invoice, onSubmit, onCancel, loading = false }: In
     }
   }
 
+  const handleFormAction = async (formData: FormData) => {
+    // Trigger form validation and submission using react-hook-form
+    const isValid = await form.trigger()
+    if (isValid) {
+      const values = form.getValues()
+      await handleSubmit(values)
+    }
+  }
+
   const addLineItem = () => {
     append({
       description: '',
@@ -234,7 +244,7 @@ export function InvoiceForm({ invoice, onSubmit, onCancel, loading = false }: In
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+      <form action={handleFormAction} className="space-y-6">
         {/* 基本信息 */}
         <Card>
           <CardHeader>
@@ -250,13 +260,12 @@ export function InvoiceForm({ invoice, onSubmit, onCancel, loading = false }: In
                 name="user_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>用户ID *</FormLabel>
+                    <FormLabel>选择用户 *</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder="输入用户ID"
-                        {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                      <UserSelector
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        placeholder="选择用户"
                       />
                     </FormControl>
                     <FormMessage />
@@ -352,7 +361,7 @@ export function InvoiceForm({ invoice, onSubmit, onCancel, loading = false }: In
                       <FormLabel>模板</FormLabel>
                       <Select 
                         onValueChange={(value) => field.onChange(parseInt(value))} 
-                        defaultValue={field.value?.toString()}
+                        defaultValue={field.value ? field.value.toString() : undefined}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -701,6 +710,7 @@ export function InvoiceForm({ invoice, onSubmit, onCancel, loading = false }: In
                         type="number" 
                         placeholder="输入订单ID"
                         {...field}
+                        value={field.value ? field.value.toString() : ''}
                         onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)}
                       />
                     </FormControl>
@@ -720,6 +730,7 @@ export function InvoiceForm({ invoice, onSubmit, onCancel, loading = false }: In
                         type="number" 
                         placeholder="输入订阅ID"
                         {...field}
+                        value={field.value ? field.value.toString() : ''}
                         onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)}
                       />
                     </FormControl>

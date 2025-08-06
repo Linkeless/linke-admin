@@ -206,8 +206,7 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
     header: () => <div className="w-full text-right">Target</div>,
     cell: ({ row }) => (
       <form
-        onSubmit={(e) => {
-          e.preventDefault()
+        action={async (formData) => {
           toast.promise(new Promise((resolve) => setTimeout(resolve, 1000)), {
             loading: `Saving ${row.original.header}`,
             success: "Done",
@@ -231,8 +230,7 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
     header: () => <div className="w-full text-right">Limit</div>,
     cell: ({ row }) => (
       <form
-        onSubmit={(e) => {
-          e.preventDefault()
+        action={async (formData) => {
           toast.promise(new Promise((resolve) => setTimeout(resolve, 1000)), {
             loading: `Saving ${row.original.header}`,
             success: "Done",

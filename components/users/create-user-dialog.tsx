@@ -85,7 +85,7 @@ export function CreateUserDialog({ onUserCreated, trigger }: CreateUserDialogPro
     },
   })
 
-  const onSubmit = async (values: CreateUserFormValues) => {
+  const handleSubmit = async (values: CreateUserFormValues) => {
     try {
       setIsLoading(true)
       
@@ -131,6 +131,15 @@ export function CreateUserDialog({ onUserCreated, trigger }: CreateUserDialogPro
     }
   }
 
+  const handleFormAction = async (formData: FormData) => {
+    // Trigger form validation and submission using react-hook-form
+    const isValid = await form.trigger()
+    if (isValid) {
+      const values = form.getValues()
+      await handleSubmit(values)
+    }
+  }
+
   const defaultTrigger = (
     <Button>
       <UserPlus className="mr-2 h-4 w-4" />
@@ -152,7 +161,7 @@ export function CreateUserDialog({ onUserCreated, trigger }: CreateUserDialogPro
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form action={handleFormAction} className="space-y-4">
             {/* 邮箱地址 */}
             <FormField
               control={form.control}

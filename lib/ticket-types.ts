@@ -156,7 +156,106 @@ export interface TicketMessageQueryParams {
   include_internal?: boolean
 }
 
-// 批量操作请求
+// 创建工单请求类型 (基于 handlers.AdminCreateTicketRequest)
+export interface CreateTicketRequest {
+  user_id: number
+  title: string
+  description: string
+  category: 'general' | 'technical' | 'billing' | 'account' | 'feature' | 'bug' | 'subscription' | 'payment'
+  priority?: 'low' | 'normal' | 'high' | 'urgent' | 'critical'
+  assigned_to_id?: number
+  tags?: string
+  metadata?: string
+}
+
+// 升级工单请求类型 (基于 handlers.EscalateTicketRequest)
+export interface EscalateTicketRequest {
+  escalated_to_id: number
+  escalation_reason: string // 10-1000 字符
+  priority?: 'high' | 'urgent' | 'critical'
+  notes?: string
+}
+
+// 批量工单操作请求类型 (基于 handlers.BulkTicketActionRequest)
+export interface BulkTicketActionRequest {
+  action: 'assign' | 'close' | 'reopen' | 'update_priority' | 'update_status'
+  ticket_ids: number[]
+  assigned_to_id?: number
+  priority?: 'low' | 'normal' | 'high' | 'urgent' | 'critical'
+  status?: 'open' | 'in_progress' | 'pending' | 'resolved' | 'closed'
+  notes?: string
+}
+
+// 更新工单消息请求类型
+export interface UpdateTicketMessageRequest {
+  content?: string
+  is_internal?: boolean
+  attachments?: string
+  metadata?: string
+}
+
+// 工单搜索参数类型
+export interface TicketSearchParams {
+  query?: string
+  user_id?: number
+  assigned_to_id?: number
+  status?: 'open' | 'in_progress' | 'pending' | 'resolved' | 'closed'
+  priority?: 'low' | 'normal' | 'high' | 'urgent' | 'critical'
+  category?: 'general' | 'technical' | 'billing' | 'account' | 'feature' | 'bug' | 'subscription' | 'payment'
+  created_after?: string
+  created_before?: string
+  assigned_after?: string
+  assigned_before?: string
+  resolved_after?: string
+  resolved_before?: string
+  tags?: string
+  sort_by?: 'created_at' | 'updated_at' | 'priority' | 'status' | 'assigned_at'
+  sort_order?: 'asc' | 'desc'
+  limit?: number
+  offset?: number
+}
+
+// 工单统计数据类型
+export interface TicketStatistics {
+  total_tickets: number
+  open_tickets: number
+  in_progress_tickets: number
+  pending_tickets: number
+  resolved_tickets: number
+  closed_tickets: number
+  unassigned_tickets: number
+  overdue_tickets: number
+  avg_response_time_hours: number
+  avg_resolution_time_hours: number
+  tickets_created_today: number
+  tickets_resolved_today: number
+  tickets_by_priority: {
+    low: number
+    normal: number
+    high: number
+    urgent: number
+    critical: number
+  }
+  tickets_by_category: {
+    general: number
+    technical: number
+    billing: number
+    account: number
+    feature: number
+    bug: number
+    subscription: number
+    payment: number
+  }
+  tickets_by_status: {
+    open: number
+    in_progress: number
+    pending: number
+    resolved: number
+    closed: number
+  }
+}
+
+// 批量操作请求 (保留向后兼容)
 export interface BatchTicketRequest {
   admin_confirmed: boolean
   operation: 'assign' | 'close' | 'resolve' | 'delete' | 'export'

@@ -75,7 +75,7 @@ export function ResetPasswordDialog({
            (!user.provider || user.provider === 'local')
   }
 
-  const onSubmit = async (data: FormData) => {
+  const handleSubmit = async (data: FormData) => {
     try {
       setLoading(true)
       await userService.resetUserPassword(user.id, data.newPassword)
@@ -107,6 +107,15 @@ export function ResetPasswordDialog({
       alert(errorMessage)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleFormAction = async (formData: FormData) => {
+    // Trigger form validation and submission using react-hook-form
+    const isValid = await form.trigger()
+    if (isValid) {
+      const values = form.getValues()
+      await handleSubmit(values)
     }
   }
 
@@ -160,7 +169,7 @@ export function ResetPasswordDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form action={handleFormAction} className="space-y-4">
             <FormField
               control={form.control}
               name="newPassword"

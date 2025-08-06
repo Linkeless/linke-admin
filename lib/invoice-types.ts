@@ -32,7 +32,7 @@ export interface InvoiceStatistics {
   paid_amount: number
   pending_amount: number
   overdue_amount: number
-  currency: string
+  currency?: string
 }
 
 // 发票下载历史
@@ -189,6 +189,45 @@ export interface BulkDownloadRequest {
   invoice_ids: number[]
   format?: 'pdf' | 'zip'
 }
+
+// 批量操作请求类型
+export interface BulkMarkPaidRequest {
+  invoice_ids: number[]
+  payment_date?: string
+  payment_method?: string
+  notes?: string
+}
+
+export interface BulkVoidRequest {
+  invoice_ids: number[]
+  reason?: string
+  notes?: string
+}
+
+export interface BulkResendRequest {
+  invoice_ids: number[]
+  to_email?: string
+  cc_emails?: string[]
+  subject?: string
+  message?: string
+  attach_pdf?: boolean
+}
+
+export interface BulkRegeneratePdfRequest {
+  invoice_ids: number[]
+}
+
+// 批量操作响应类型
+export interface BulkOperationResult {
+  success_count: number
+  failed_count: number
+  failed_items: Array<{
+    invoice_id: number
+    error: string
+  }>
+}
+
+export type BulkOperationResponse = ApiResponse<BulkOperationResult>
 
 // 创建发票请求
 export interface CreateInvoiceRequest {

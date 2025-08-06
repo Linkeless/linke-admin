@@ -90,7 +90,7 @@ export function EditUserDialog({ user, onUserUpdated, trigger }: EditUserDialogP
     })
   }, [user, form])
 
-  const onSubmit = async (values: EditUserFormValues) => {
+  const handleSubmit = async (values: EditUserFormValues) => {
     try {
       setIsLoading(true)
       
@@ -137,6 +137,15 @@ export function EditUserDialog({ user, onUserUpdated, trigger }: EditUserDialogP
     }
   }
 
+  const handleFormAction = async (formData: FormData) => {
+    // Trigger form validation and submission using react-hook-form
+    const isValid = await form.trigger()
+    if (isValid) {
+      const values = form.getValues()
+      await handleSubmit(values)
+    }
+  }
+
   const defaultTrigger = (
     <Button variant="ghost" size="sm">
       <Edit className="h-4 w-4" />
@@ -157,7 +166,7 @@ export function EditUserDialog({ user, onUserUpdated, trigger }: EditUserDialogP
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form action={handleFormAction} className="space-y-4">
             {/* 邮箱地址 */}
             <FormField
               control={form.control}

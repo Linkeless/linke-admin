@@ -1,14 +1,20 @@
 import {
   TicketResponse,
+  CreateTicketRequest,
   CreateTicketMessageRequest,
   UpdateTicketRequest,
+  UpdateTicketMessageRequest,
   AssignTicketRequest,
   ResolveTicketRequest,
+  EscalateTicketRequest,
   TicketQueryParams,
+  TicketSearchParams,
   TicketStatsResponse,
+  TicketStatistics,
   TicketMessageResponse,
   TicketMessageQueryParams,
   BatchTicketRequest,
+  BulkTicketActionRequest,
   TicketsApiResponse,
   TicketMessagesApiResponse,
   ApiResponse
@@ -77,9 +83,43 @@ class TicketService {
     })
   }
 
-  // 获取工单统计
+  // 获取工单统计 (保留向后兼容)
   async getTicketStats(): Promise<ApiResponse<TicketStatsResponse>> {
-    return this.request<ApiResponse<TicketStatsResponse>>('/admin/tickets/stats', {
+    return this.request<ApiResponse<TicketStatsResponse>>('/admin/tickets/statistics', {
+      method: 'GET',
+    })
+  }
+
+  /**
+   * 高级工单搜索
+   * @param params 搜索参数
+   * @returns 搜索结果
+   */
+  async searchTickets(params: TicketSearchParams): Promise<TicketsApiResponse> {
+    const searchParams = new URLSearchParams()
+    
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          searchParams.append(key, String(value))
+        }
+      })
+    }
+
+    const queryString = searchParams.toString()
+    const endpoint = `/admin/tickets/search${queryString ? `?${queryString}` : ''}`
+    
+    return this.request<TicketsApiResponse>(endpoint, {
+      method: 'GET',
+    })
+  }
+
+  /**
+   * 获取详细的工单统计数据
+   * @returns 完整的工单统计信息
+   */
+  async getTicketStatistics(): Promise<ApiResponse<TicketStatistics>> {
+    return this.request<ApiResponse<TicketStatistics>>('/admin/tickets/statistics', {
       method: 'GET',
     })
   }
@@ -95,6 +135,18 @@ class TicketService {
   async getTicketByNumber(ticketNumber: string): Promise<ApiResponse<TicketResponse>> {
     return this.request<ApiResponse<TicketResponse>>(`/admin/tickets/number/${ticketNumber}`, {
       method: 'GET',
+    })
+  }
+
+  /**
+   * 创建工单 (管理员代用户创建)
+   * @param data 创建工单的数据
+   * @returns 创建的工单信息
+   */
+  async createTicket(data: CreateTicketRequest): Promise<ApiResponse<TicketResponse>> {
+    return this.request<ApiResponse<TicketResponse>>('/admin/tickets', {
+      method: 'POST',
+      body: JSON.stringify(data),
     })
   }
 
@@ -136,6 +188,30 @@ class TicketService {
     })
   }
 
+  /**
+   * 重新打开已关闭的工单
+   * @param id 工单ID
+   * @returns 重新打开的工单信息
+   */
+  async reopenTicket(id: number): Promise<ApiResponse<TicketResponse>> {
+    return this.request<ApiResponse<TicketResponse>>(`/admin/tickets/${id}/reopen`, {
+      method: 'POST',
+    })
+  }
+
+  /**
+   * 升级工单到更高优先级或分配给其他代理
+   * @param id 工单ID
+   * @param data 升级请求数据
+   * @returns 升级后的工单信息
+   */
+  async escalateTicket(id: number, data: EscalateTicketRequest): Promise<ApiResponse<TicketResponse>> {
+    return this.request<ApiResponse<TicketResponse>>(`/admin/tickets/${id}/escalate`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
   // 获取工单消息
   async getTicketMessages(ticketId: number, params?: TicketMessageQueryParams): Promise<TicketMessagesApiResponse> {
     const searchParams = new URLSearchParams()
@@ -164,12 +240,60 @@ class TicketService {
     })
   }
 
-  // 批量操作工单 (如果后端支持)
-  async batchUpdateTickets(data: BatchTicketRequest): Promise<ApiResponse<void>> {
-    return this.request<ApiResponse<void>>('/admin/tickets/batch', {
+  /**
+   * 批量分配工单给指定代理
+   * @param data 批量分配数据
+   * @returns 操作结果
+   */
+  async bulkAssignTickets(data: BulkTicketActionRequest): Promise<ApiResponse<void>> {
+    return this.request<ApiResponse<void>>('/admin/tickets/bulk/assign', {
       method: 'POST',
       body: JSON.stringify(data),
     })
+  }
+
+  /**
+   * 批量关闭工单
+   * @param data 批量操作数据
+   * @returns 操作结果
+   */
+  async bulkCloseTickets(data: BulkTicketActionRequest): Promise<ApiResponse<void>> {
+    return this.request<ApiResponse<void>>('/admin/tickets/bulk/close', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  /**
+   * 批量更新工单状态或优先级
+   * @param data 批量更新数据
+   * @returns 操作结果
+   */
+  async bulkUpdateTicketStatus(data: BulkTicketActionRequest): Promise<ApiResponse<void>> {
+    return this.request<ApiResponse<void>>('/admin/tickets/bulk/status', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  // 批量操作工单 (保留向后兼容，建议使用具体的bulk方法)
+  async batchUpdateTickets(data: BatchTicketRequest): Promise<ApiResponse<void>> {
+    // 根据操作类型路由到相应的bulk接口
+    const bulkData: BulkTicketActionRequest = {
+      action: data.operation as any,
+      ticket_ids: data.ticket_ids,
+      assigned_to_id: data.assigned_to_id,
+      notes: data.notes,
+    }
+
+    switch (data.operation) {
+      case 'assign':
+        return this.bulkAssignTickets(bulkData)
+      case 'close':
+        return this.bulkCloseTickets(bulkData)
+      default:
+        return this.bulkUpdateTicketStatus(bulkData)
+    }
   }
 
   // 格式化工单号显示

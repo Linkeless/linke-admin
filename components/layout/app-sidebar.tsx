@@ -168,11 +168,6 @@ const navGroups: NavGroupProps[] = [
         url: "/usage/analytics",
         icon: BarChart3,
       },
-      {
-        title: "管理后台",
-        url: "/usage/admin",
-        icon: UserCog,
-      },
     ],
   },
   {

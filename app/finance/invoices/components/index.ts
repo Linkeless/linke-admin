@@ -1,3 +1,5 @@
 export { InvoiceStatusBadge } from './invoice-status-badge'
 export { InvoiceActions } from './invoice-actions'
 export { InvoiceForm } from './invoice-form'
+export { BulkActionsDialog } from './bulk-actions-dialog'
+export { UserSelector } from './user-selector'
