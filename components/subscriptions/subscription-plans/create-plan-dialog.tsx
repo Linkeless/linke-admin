@@ -28,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Plus, Loader2 } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -43,21 +44,25 @@ import {
 const formSchema = z.object({
   name: z.string().min(1, '计划名称不能为空').max(100, '计划名称不能超过100字符'),
   code: z.string().min(1, '计划代码不能为空').max(50, '计划代码不能超过50字符'),
-  description: z.string().min(1, '计划描述不能为空').max(500, '计划描述不能超过500字符'),
+  description: z.string().optional(),
   price: z.number().min(0, '价格必须大于等于0'),
   currency: z.string().min(1, '请选择货币'),
-  billing_cycle: z.enum(['monthly', 'yearly', 'quarterly'], {
+  billing_cycle: z.enum(['monthly', 'yearly', 'lifetime'], {
     required_error: '请选择计费周期'
   }),
-  billing_interval: z.number().min(1, '计费间隔必须大于0'),
-  duration_days: z.number().min(1, '时长天数必须大于0'),
-  data_limit_gb: z.number().min(0, '流量限制必须大于等于0'),
-  device_limit: z.number().min(0, '设备限制必须大于等于0'),
-  trial_days: z.number().min(0, '试用天数必须大于等于0'),
-  status: z.enum(['active', 'inactive'], {
-    required_error: '请选择状态'
+  billing_interval: z.number().min(1, '计费间隔必须大于0').optional(),
+  traffic_limit_gb: z.number().min(0, '流量限制必须大于等于0'),
+  traffic_reset_cycle: z.enum(['monthly', 'never'], {
+    required_error: '请选择流量重置周期'
   }),
-  sort_order: z.number().min(0, '排序值必须大于等于0'),
+  trial_period_days: z.number().min(0, '试用天数必须大于等于0').optional(),
+  setup_fee: z.number().min(0, '安装费必须大于等于0').optional(),
+  cancellation_fee: z.number().min(0, '取消费必须大于等于0').optional(),
+  is_visible: z.boolean().optional(),
+  is_popular: z.boolean().optional(),
+  is_recommended: z.boolean().optional(),
+  sort_order: z.number().min(0, '排序值必须大于等于0').optional(),
+  default_server_group_ids: z.array(z.number()).min(1, '请至少选择一个服务器组'), // 新增：默认服务器组ID数组（必填）
 })
 
 type FormData = z.infer<typeof formSchema>
@@ -80,12 +85,16 @@ export function CreatePlanDialog({ onPlanCreated }: CreatePlanDialogProps) {
       currency: 'USD',
       billing_cycle: 'monthly',
       billing_interval: 1,
-      duration_days: 30,
-      data_limit_gb: 0,
-      device_limit: 0,
-      trial_days: 0,
-      status: 'active',
+      traffic_limit_gb: 100, // 默认100GB
+      traffic_reset_cycle: 'monthly',
+      trial_period_days: 0,
+      setup_fee: 0,
+      cancellation_fee: 0,
+      is_visible: true,
+      is_popular: false,
+      is_recommended: false,
       sort_order: 0,
+      default_server_group_ids: [1], // 默认选择第一个服务器组
     },
   })
 
@@ -93,7 +102,28 @@ export function CreatePlanDialog({ onPlanCreated }: CreatePlanDialogProps) {
     try {
       setLoading(true)
 
-      const createData: CreatePlanRequest = data
+      // 转换GB为字节（1GB = 1024^3 bytes）
+      const trafficLimitBytes = data.traffic_limit_gb * 1024 * 1024 * 1024
+
+      const createData: CreatePlanRequest = {
+        name: data.name,
+        code: data.code,
+        description: data.description,
+        price: data.price,
+        currency: data.currency,
+        billing_cycle: data.billing_cycle,
+        billing_interval: data.billing_interval,
+        traffic_limit: trafficLimitBytes,
+        traffic_reset_cycle: data.traffic_reset_cycle,
+        trial_period_days: data.trial_period_days,
+        setup_fee: data.setup_fee,
+        cancellation_fee: data.cancellation_fee,
+        is_visible: data.is_visible,
+        is_popular: data.is_popular,
+        is_recommended: data.is_recommended,
+        sort_order: data.sort_order,
+        default_server_group_ids: data.default_server_group_ids,
+      }
 
       console.log('创建订阅计划数据:', createData)
       const response = await subscriptionService.createPlan(createData)
@@ -260,20 +290,20 @@ export function CreatePlanDialog({ onPlanCreated }: CreatePlanDialogProps) {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* 时长天数 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* 计费间隔 */}
               <FormField
                 control={form.control}
-                name="duration_days"
+                name="billing_interval"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>时长天数</FormLabel>
+                    <FormLabel>计费间隔</FormLabel>
                     <FormControl>
                       <Input 
                         type="number"
-                        placeholder="30"
+                        placeholder="1"
                         {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                        onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
                       />
                     </FormControl>
                     <FormMessage />
@@ -284,14 +314,14 @@ export function CreatePlanDialog({ onPlanCreated }: CreatePlanDialogProps) {
               {/* 流量限制GB */}
               <FormField
                 control={form.control}
-                name="data_limit_gb"
+                name="traffic_limit_gb"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>流量限制(GB)</FormLabel>
                     <FormControl>
                       <Input 
                         type="number"
-                        placeholder="0 = 无限制"
+                        placeholder="100"
                         {...field}
                         onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                       />
@@ -301,32 +331,35 @@ export function CreatePlanDialog({ onPlanCreated }: CreatePlanDialogProps) {
                 )}
               />
 
-              {/* 设备限制 */}
+              {/* 流量重置周期 */}
               <FormField
                 control={form.control}
-                name="device_limit"
+                name="traffic_reset_cycle"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>设备限制</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number"
-                        placeholder="0 = 无限制"
-                        {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                      />
-                    </FormControl>
+                    <FormLabel>流量重置周期</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="选择重置周期" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="monthly">每月重置</SelectItem>
+                        <SelectItem value="never">永不重置</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {/* 试用天数 */}
               <FormField
                 control={form.control}
-                name="trial_days"
+                name="trial_period_days"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>试用天数</FormLabel>
@@ -343,24 +376,43 @@ export function CreatePlanDialog({ onPlanCreated }: CreatePlanDialogProps) {
                 )}
               />
 
-              {/* 状态 */}
+              {/* 安装费 */}
               <FormField
                 control={form.control}
-                name="status"
+                name="setup_fee"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>计划状态</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="选择状态" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="active">激活</SelectItem>
-                        <SelectItem value="inactive">未激活</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <FormLabel>安装费</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number"
+                        step="0.01"
+                        placeholder="0"
+                        {...field}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* 取消费 */}
+              <FormField
+                control={form.control}
+                name="cancellation_fee"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>取消费</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number"
+                        step="0.01"
+                        placeholder="0"
+                        {...field}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -386,6 +438,100 @@ export function CreatePlanDialog({ onPlanCreated }: CreatePlanDialogProps) {
                 )}
               />
             </div>
+
+            {/* 可见性和推荐选项 */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <FormField
+                control={form.control}
+                name="is_visible"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">对用户可见</FormLabel>
+                    </div>
+                    <FormControl>
+                      <input 
+                        type="checkbox"
+                        checked={field.value}
+                        onChange={field.onChange}
+                        className="h-4 w-4"
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="is_popular"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">热门计划</FormLabel>
+                    </div>
+                    <FormControl>
+                      <input 
+                        type="checkbox"
+                        checked={field.value}
+                        onChange={field.onChange}
+                        className="h-4 w-4"
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="is_recommended"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">推荐计划</FormLabel>
+                    </div>
+                    <FormControl>
+                      <input 
+                        type="checkbox"
+                        checked={field.value}
+                        onChange={field.onChange}
+                        className="h-4 w-4"
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* 默认服务器组 */}
+            <FormField
+              control={form.control}
+              name="default_server_group_ids"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>默认服务器组（可选）</FormLabel>
+                  <div className="text-sm text-muted-foreground mb-2">
+                    选择此订阅计划默认关联的服务器组（必填）
+                  </div>
+                  {/* 这里可以添加服务器组选择组件，目前先使用简单输入框 */}
+                  <FormControl>
+                    <Input
+                      placeholder="请输入服务器组ID，用逗号分隔，如：1,2,3（必填）"
+                      value={(field.value || []).join(',')}
+                      onChange={(e) => {
+                        const value = e.target.value.trim()
+                        if (value) {
+                          const ids = value.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id))
+                          field.onChange(ids)
+                        } else {
+                          field.onChange([])
+                        }
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <DialogFooter className="gap-2 pt-4">
               <Button

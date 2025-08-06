@@ -68,7 +68,7 @@ class InviteCodeService {
     }
 
     const queryString = searchParams.toString()
-    const endpoint = `/admin/invite-codes${queryString ? `?${queryString}` : ''}`
+    const endpoint = `/admin/referrals/invite-codes${queryString ? `?${queryString}` : ''}`
     
     return this.request<InviteCodesApiResponse>(endpoint, {
       method: 'GET',
@@ -77,7 +77,7 @@ class InviteCodeService {
 
   // 创建邀请码
   async createInviteCode(data: CreateInviteCodeRequest): Promise<ApiResponse<InviteCodeResponse>> {
-    return this.request<ApiResponse<InviteCodeResponse>>('/admin/invite-codes', {
+    return this.request<ApiResponse<InviteCodeResponse>>('/admin/referrals/invite-codes', {
       method: 'POST',
       body: JSON.stringify(data),
     })
@@ -85,7 +85,7 @@ class InviteCodeService {
 
   // 更新邀请码
   async updateInviteCode(id: number, data: UpdateInviteCodeRequest): Promise<ApiResponse<InviteCodeResponse>> {
-    return this.request<ApiResponse<InviteCodeResponse>>(`/admin/invite-codes/${id}`, {
+    return this.request<ApiResponse<InviteCodeResponse>>(`/admin/referrals/invite-codes/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     })
@@ -93,21 +93,21 @@ class InviteCodeService {
 
   // 删除邀请码
   async deleteInviteCode(id: number): Promise<ApiResponse<void>> {
-    return this.request<ApiResponse<void>>(`/admin/invite-codes/${id}`, {
+    return this.request<ApiResponse<void>>(`/admin/referrals/invite-codes/${id}`, {
       method: 'DELETE',
     })
   }
 
   // 获取单个邀请码详情
   async getInviteCode(id: number): Promise<ApiResponse<InviteCodeResponse>> {
-    return this.request<ApiResponse<InviteCodeResponse>>(`/admin/invite-codes/${id}`, {
+    return this.request<ApiResponse<InviteCodeResponse>>(`/admin/referrals/invite-codes/${id}`, {
       method: 'GET',
     })
   }
 
   // 切换邀请码状态
   async toggleInviteCodeStatus(id: number, status: 'active' | 'inactive'): Promise<ApiResponse<InviteCodeResponse>> {
-    return this.request<ApiResponse<InviteCodeResponse>>(`/admin/invite-codes/${id}/status`, {
+    return this.request<ApiResponse<InviteCodeResponse>>(`/admin/referrals/invite-codes/${id}/status`, {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     })
@@ -115,7 +115,7 @@ class InviteCodeService {
 
   // 批量生成邀请码
   async batchCreateInviteCodes(data: BatchInviteCodeRequest): Promise<ApiResponse<InviteCodeResponse[]>> {
-    return this.request<ApiResponse<InviteCodeResponse[]>>('/admin/invite-codes/batch', {
+    return this.request<ApiResponse<InviteCodeResponse[]>>('/admin/referrals/invite-codes/batch', {
       method: 'POST',
       body: JSON.stringify(data),
     })
@@ -123,7 +123,7 @@ class InviteCodeService {
 
   // 获取邀请码统计信息
   async getInviteCodeStats(): Promise<ApiResponse<InviteCodeStatsResponse>> {
-    return this.request<ApiResponse<InviteCodeStatsResponse>>('/admin/invite-codes/stats', {
+    return this.request<ApiResponse<InviteCodeStatsResponse>>('/admin/referrals/invite-codes/stats', {
       method: 'GET',
     })
   }
@@ -141,7 +141,7 @@ class InviteCodeService {
     }
 
     const queryString = searchParams.toString()
-    const endpoint = `/admin/invite-codes/usages${queryString ? `?${queryString}` : ''}`
+    const endpoint = `/admin/referrals/invite-codes/usages${queryString ? `?${queryString}` : ''}`
     
     return this.request<InviteCodeUsagesApiResponse>(endpoint, {
       method: 'GET',
@@ -150,14 +150,14 @@ class InviteCodeService {
 
   // 重置邀请码使用次数
   async resetInviteCodeUsage(id: number): Promise<ApiResponse<InviteCodeResponse>> {
-    return this.request<ApiResponse<InviteCodeResponse>>(`/admin/invite-codes/${id}/reset`, {
+    return this.request<ApiResponse<InviteCodeResponse>>(`/admin/referrals/invite-codes/${id}/reset`, {
       method: 'POST',
     })
   }
 
   // 延长邀请码有效期
   async extendInviteCodeValidity(id: number, validUntil: string): Promise<ApiResponse<InviteCodeResponse>> {
-    return this.request<ApiResponse<InviteCodeResponse>>(`/admin/invite-codes/${id}/extend`, {
+    return this.request<ApiResponse<InviteCodeResponse>>(`/admin/referrals/invite-codes/${id}/extend`, {
       method: 'POST',
       body: JSON.stringify({ valid_until: validUntil }),
     })

@@ -3,6 +3,7 @@
 import { ColumnDef } from '@tanstack/react-table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MoreHorizontal, Edit, Trash2, Power, PowerOff, ChevronsUpDown, Copy, RotateCcw } from 'lucide-react'
+import { MoreHorizontal, Edit, Trash2, Power, PowerOff, Copy, RotateCcw } from 'lucide-react'
 import { InviteCodeResponse } from '@/lib/invite-code-types'
 import { inviteCodeService } from '@/lib/invite-code-service'
 import { toast } from 'sonner'
@@ -73,18 +74,9 @@ export function createColumns({ onInviteCodeUpdated, onEdit }: ColumnsProps): Co
   return [
     {
       accessorKey: 'code',
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="h-auto p-0 font-medium hover:bg-transparent justify-start"
-          >
-            邀请码
-            <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
-          </Button>
-        )
-      },
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="邀请码" />
+      ),
       cell: ({ row }) => {
         const code = row.getValue('code') as string
         return (
@@ -106,18 +98,9 @@ export function createColumns({ onInviteCodeUpdated, onEdit }: ColumnsProps): Co
     },
     {
       accessorKey: 'name',
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="h-auto p-0 font-medium hover:bg-transparent justify-start"
-          >
-            名称
-            <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
-          </Button>
-        )
-      },
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="名称" />
+      ),
       cell: ({ row }) => {
         const inviteCode = row.original
         return (
@@ -134,7 +117,7 @@ export function createColumns({ onInviteCodeUpdated, onEdit }: ColumnsProps): Co
     },
     {
       accessorKey: 'status',
-      header: () => <div className="text-center">状态</div>,
+      header: () => <div>状态</div>,
       cell: ({ row }) => {
         const status = row.getValue('status') as string
         const statusConfig = {
@@ -145,7 +128,7 @@ export function createColumns({ onInviteCodeUpdated, onEdit }: ColumnsProps): Co
         const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.inactive
         
         return (
-          <div className="text-center">
+          <div>
             <Badge variant={config.variant}>{config.label}</Badge>
           </div>
         )
@@ -153,7 +136,7 @@ export function createColumns({ onInviteCodeUpdated, onEdit }: ColumnsProps): Co
     },
     {
       accessorKey: 'used_count',
-      header: () => <div className="text-center">使用情况</div>,
+      header: () => <div>使用情况</div>,
       cell: ({ row }) => {
         const inviteCode = row.original
         const usageText = inviteCode.is_unlimited 
@@ -165,7 +148,7 @@ export function createColumns({ onInviteCodeUpdated, onEdit }: ColumnsProps): Co
           : (inviteCode.used_count / inviteCode.max_uses) * 100
         
         return (
-          <div className="text-center">
+          <div>
             <div className="text-sm font-medium">{usageText}</div>
             {!inviteCode.is_unlimited && (
               <div className="text-xs text-muted-foreground">
@@ -178,18 +161,9 @@ export function createColumns({ onInviteCodeUpdated, onEdit }: ColumnsProps): Co
     },
     {
       accessorKey: 'valid_until',
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="h-auto p-0 font-medium hover:bg-transparent justify-start"
-          >
-            有效期
-            <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
-          </Button>
-        )
-      },
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="有效期" />
+      ),
       cell: ({ row }) => {
         const validUntil = row.getValue('valid_until') as string
         if (!validUntil) {
@@ -217,18 +191,9 @@ export function createColumns({ onInviteCodeUpdated, onEdit }: ColumnsProps): Co
     },
     {
       accessorKey: 'created_at',
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="h-auto p-0 font-medium hover:bg-transparent justify-start"
-          >
-            创建时间
-            <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
-          </Button>
-        )
-      },
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="创建时间" />
+      ),
       cell: ({ row }) => {
         const createdAt = row.getValue('created_at') as string
         const date = new Date(createdAt)

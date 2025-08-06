@@ -1,9 +1,10 @@
 'use client'
 
 import { ColumnDef } from "@tanstack/react-table"
-import { MoreHorizontal, Trash2, Layers, ChevronsUpDown, Eye, Edit } from "lucide-react"
+import { MoreHorizontal, Trash2, Layers, Eye, Edit } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { DataTableColumnHeader } from "@/components/ui/data-table-column-header"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,18 +28,9 @@ interface ColumnsProps {
 export const createColumns = ({ onServerGroupUpdated }: ColumnsProps): ColumnDef<ServerGroupResponse>[] => [
   {
     accessorKey: "id",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium hover:bg-transparent justify-start"
-        >
-          ID
-          <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
-        </Button>
-      )
-    },
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="ID" />
+    ),
     cell: ({ row }) => {
       const serverGroup = row.original
       return (
@@ -50,18 +42,9 @@ export const createColumns = ({ onServerGroupUpdated }: ColumnsProps): ColumnDef
   },
   {
     accessorKey: "name",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium hover:bg-transparent justify-start"
-        >
-          服务器组名称
-          <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
-        </Button>
-      )
-    },
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="服务器组名称" />
+    ),
     cell: ({ row }) => {
       const serverGroup = row.original
       return (
@@ -76,18 +59,9 @@ export const createColumns = ({ onServerGroupUpdated }: ColumnsProps): ColumnDef
   },
   {
     accessorKey: "created_at",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium hover:bg-transparent justify-start"
-        >
-          创建时间
-          <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
-        </Button>
-      )
-    },
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="创建时间" />
+    ),
     cell: ({ row }) => {
       const serverGroup = row.original
       return (
@@ -99,18 +73,9 @@ export const createColumns = ({ onServerGroupUpdated }: ColumnsProps): ColumnDef
   },
   {
     accessorKey: "updated_at",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium hover:bg-transparent justify-start"
-        >
-          更新时间
-          <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
-        </Button>
-      )
-    },
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="更新时间" />
+    ),
     cell: ({ row }) => {
       const serverGroup = row.original
       return (

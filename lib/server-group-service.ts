@@ -76,6 +76,18 @@ export class ServerGroupService implements IServerGroupService {
     return response
   }
 
+  // 获取服务器组内的所有服务器
+  async getServerGroupServers(id: number): Promise<StandardResponse> {
+    const response: StandardResponse = await api.get(`/admin/server-groups/${id}/servers`)
+    return response
+  }
+
+  // 获取服务器组统计信息
+  async getServerGroupStatistics(id: number): Promise<StandardResponse> {
+    const response: StandardResponse = await api.get(`/admin/server-groups/${id}/statistics`)
+    return response
+  }
+
   // 辅助方法：格式化服务器组显示名称
   formatServerGroupDisplayName(serverGroup: ServerGroupResponse): string {
     return serverGroup.name

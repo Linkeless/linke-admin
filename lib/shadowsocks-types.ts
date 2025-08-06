@@ -2,88 +2,90 @@
 
 import { StandardResponse } from './types'
 
-// Shadowsocks服务器响应类型（根据完整API文档）
+// Shadowsocks服务器响应类型（根据swagger文档）
 export interface ShadowsocksServerResponse {
   id: number
   group_id: number
   name: string
   host: string
-  port: string  // API返回string类型
+  port: number        // 根据swagger，这是integer类型
   server_port: number
   cipher: string
-  rate: string  // 倍率/速率字段，string类型，最大11字符
-  show: number  // 显示状态，0/1表示是否显示
-  sort: number  // 排序字段
-  created_at: number
-  updated_at: number
+  rate: number        // 根据swagger，这是number类型
+  show: number        // 显示状态，0/1表示是否显示
+  sort: number        // 排序字段
+  created_at: number  // 时间戳
+  updated_at: number  // 时间戳
+  
+  // 可选字段
+  parent_id?: number    // 父服务器ID
+  obfs?: string         // 混淆方式
+  obfs_settings?: string // 混淆设置
+  route_id?: string     // 路由ID
+  tags?: string         // 标签，逗号分隔
+  ips?: string          // IP范围
+  excludes?: string     // 排除的IP范围
+  
   // 关系字段
-  parent_id?: number  // 父服务器ID
-  server_group?: {    // 关联的服务器组数据
+  server_group?: {      // 关联的服务器组数据
     id: number
     name: string
     created_at: string
     updated_at: string
   }
-  // 可选字段
-  obfs?: string         // 混淆方式，最大11字符
-  obfs_settings?: string // 混淆设置，最大255字符  
-  route_id?: string     // 路由ID，最大255字符
-  tags?: string         // 标签，逗号分隔，最大255字符
-  ips?: string          // IP范围，最大255字符
-  excludes?: string     // 排除的IP范围
 }
 
-// 创建Shadowsocks服务器请求类型（根据完整API文档）
+// 创建Shadowsocks服务器请求类型（根据swagger文档）
 export interface CreateShadowsocksServerRequest {
   // 必填字段
   name: string          // 服务器名称，最大255字符
   host: string          // 主机地址，最大255字符
-  port: string          // 端口，string类型，最大11字符
-  server_port: number   // 内部服务器端口，1-65535
+  port: number          // 端口，1-65535
+  server_port: number   // 服务器端口，1-65535
   cipher: string        // 加密方式，最大255字符
   group_id: number      // 服务器组ID
-  rate: string          // 倍率字段，string类型，最大11字符
+  rate: number          // 倍率，最小0.1
   
   // 可选字段
   obfs?: string         // 混淆方式，最大11字符
   obfs_settings?: string // 混淆设置，最大255字符
-  sort?: number         // 排序值
   show?: number         // 显示状态，0或1
   parent_id?: number    // 父服务器ID
   route_id?: string     // 路由ID，最大255字符
   tags?: string         // 标签，最大255字符
   ips?: string          // IP范围，最大255字符
   excludes?: string     // 排除的IP范围
+  sort?: number         // 排序值
 }
 
-// 更新Shadowsocks服务器请求类型（根据完整API文档，所有字段都是可选的）
+// 更新Shadowsocks服务器请求类型（所有字段都是可选的）
 export interface UpdateShadowsocksServerRequest {
   name?: string          // 服务器名称，最大255字符
   host?: string          // 主机地址，最大255字符
-  port?: string          // 端口，string类型，最大11字符
-  server_port?: number   // 内部服务器端口，1-65535
+  port?: number          // 端口，1-65535
+  server_port?: number   // 服务器端口，1-65535
   cipher?: string        // 加密方式，最大255字符
   group_id?: number      // 服务器组ID
-  rate?: string          // 倍率字段，string类型，最大11字符
+  rate?: number          // 倍率，最小0.1
   obfs?: string          // 混淆方式，最大11字符
   obfs_settings?: string // 混淆设置，最大255字符
-  sort?: number          // 排序值
   show?: number          // 显示状态，0或1
   parent_id?: number     // 父服务器ID
   route_id?: string      // 路由ID，最大255字符
   tags?: string          // 标签，最大255字符
   ips?: string           // IP范围，最大255字符
   excludes?: string      // 排除的IP范围
+  sort?: number          // 排序值
 }
 
-// Shadowsocks服务器搜索参数（严格按照后端API）
+// Shadowsocks服务器搜索参数（根据swagger文档）
 export interface ShadowsocksServerSearchParams {
-  group_id?: string    // Group ID filter
-  status?: string      // Status filter
-  is_show?: boolean    // Show filter
-  is_online?: boolean  // Online filter
-  limit?: number       // Limit
-  offset?: number      // Offset（后端使用offset而不是page）
+  page?: number        // 页码，默认1
+  limit?: number       // 每页数量，默认10
+  group_id?: number    // 按服务器组ID过滤
+  show?: number        // 按可见性过滤（0或1）
+  // 为了兼容现有代码，保留这些字段
+  offset?: number      // 偏移量（将转换为page）
 }
 
 // 分页信息
@@ -94,12 +96,22 @@ export interface PaginationInfo {
   total_pages?: number
 }
 
-// Shadowsocks服务器列表响应（根据实际API响应）
-export interface ShadowsocksServerListResponse extends StandardResponse {
-  data: ShadowsocksServerResponse[]  // 直接返回数组
-  total: number  // 分页信息在根级别
+// 分页信息结构
+export interface PaginationData {
+  page: number
   limit: number
-  offset: number
+  total: number
+}
+
+// Shadowsocks服务器列表数据结构
+export interface ShadowsocksServerListData {
+  items: ShadowsocksServerResponse[]
+  pagination: PaginationData
+}
+
+// Shadowsocks服务器列表响应（根据实际API响应格式）
+export interface ShadowsocksServerListResponse extends StandardResponse {
+  data: ShadowsocksServerListData
 }
 
 // Shadowsocks服务器详情响应
@@ -134,25 +146,27 @@ export const OBFS_OPTIONS = [
 export const convertShowToBoolean = (show: number): boolean => show === 1
 export const convertBooleanToShow = (isShow: boolean): number => isShow ? 1 : 0
 
-// Shadowsocks服务器服务接口（严格按照后端API）
+// 批量更新请求类型
+export interface BulkUpdateServersRequest {
+  server_ids: number[]
+  updates: Partial<UpdateShadowsocksServerRequest>
+}
+
+// Shadowsocks服务器服务接口（根据swagger文档）
 export interface ShadowsocksServerService {
-  // 获取服务器列表
+  // 基础CRUD操作
   getServers(params?: ShadowsocksServerSearchParams): Promise<ShadowsocksServerListResponse>
-  
-  // 获取单个服务器详情
   getServer(id: number): Promise<ShadowsocksServerDetailResponse>
-  
-  // 创建新服务器
   createServer(data: CreateShadowsocksServerRequest): Promise<ShadowsocksServerDetailResponse>
-  
-  // 更新服务器信息（PUT方法完全更新）
   updateServer(id: number, data: UpdateShadowsocksServerRequest): Promise<ShadowsocksServerDetailResponse>
-  
-  // 部分更新服务器信息（PATCH方法）
   patchServer(id: number, data: Partial<UpdateShadowsocksServerRequest>): Promise<ShadowsocksServerDetailResponse>
-  
-  // 删除服务器
   deleteServer(id: number): Promise<StandardResponse>
   
-  // 注意：后端API中没有批量操作、搜索、统计等接口
+  // 新增功能
+  bulkUpdateServers(data: BulkUpdateServersRequest): Promise<StandardResponse>
+  getServersByGroup(groupId: number): Promise<ShadowsocksServerListResponse>
+  getServerHealth(id: number): Promise<StandardResponse>
+  getServerStatistics(id: number): Promise<StandardResponse>
+  getServerStatus(id: number): Promise<StandardResponse>
+  updateServerStatus(id: number, status: { enabled?: boolean; maintenance?: boolean }): Promise<StandardResponse>
 }

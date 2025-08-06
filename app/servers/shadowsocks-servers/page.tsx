@@ -32,20 +32,17 @@ export default function ShadowsocksServersPage() {
     try {
       setLoading(true)
       
-      // 将页码转换为offset
-      const offset = (page - 1) * limit
-      
       const response = await shadowsocksServerService.getServers({
-        offset: offset,
+        page: page,
         limit: limit
       })
       
       if (response.code === 0 && response.data) {
-        // 后端直接返回数组格式
-        setServers(response.data || [])
-        // 分页信息在根级别
-        setTotalItems(response.total || 0)
-        setCurrentPage(page)
+        // API返回的数据结构：data.items 是服务器数组
+        setServers(response.data.items || [])
+        // 分页信息在 data.pagination 中
+        setTotalItems(response.data.pagination.total || 0)
+        setCurrentPage(response.data.pagination.page || page)
       }
     } catch (error) {
       // 可以添加错误提示
@@ -103,16 +100,8 @@ export default function ShadowsocksServersPage() {
                         onServerUpdated: handleServerUpdated
                       })} 
                       data={servers}
-                      pageCount={Math.ceil(totalItems / pageSize)}
-                      currentPage={currentPage}
-                      pageSize={pageSize}
-                      totalItems={totalItems}
-                      onPageChange={(page) => loadData(page, pageSize)}
-                      onPageSizeChange={(newPageSize) => {
-                        setPageSize(newPageSize)
-                        setCurrentPage(1)
-                        loadData(1, newPageSize)
-                      }}
+                      searchKey="name"
+                      searchPlaceholder="搜索服务器名称..."
                     />
                   </>
                 )}

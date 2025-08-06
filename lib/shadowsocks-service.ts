@@ -8,6 +8,7 @@ import {
   ShadowsocksServerSearchParams,
   ShadowsocksServerListResponse,
   ShadowsocksServerDetailResponse,
+  BulkUpdateServersRequest,
   ShadowsocksServerService as IShadowsocksServerService,
   CIPHER_OPTIONS,
   OBFS_OPTIONS,
@@ -22,15 +23,19 @@ export class ShadowsocksServerService implements IShadowsocksServerService {
     try {
       const queryParams = new URLSearchParams()
       
-      // 严格按照后端API参数
-      if (params?.group_id) queryParams.append('group_id', params.group_id)
-      if (params?.status) queryParams.append('status', params.status)
-      if (params?.is_show !== undefined) queryParams.append('is_show', params.is_show.toString())
-      if (params?.is_online !== undefined) queryParams.append('is_online', params.is_online.toString())
+      // 根据swagger文档API参数
+      if (params?.page) queryParams.append('page', params.page.toString())
       if (params?.limit) queryParams.append('limit', params.limit.toString())
-      if (params?.offset) queryParams.append('offset', params.offset.toString())
+      if (params?.group_id) queryParams.append('group_id', params.group_id.toString())
+      if (params?.show !== undefined) queryParams.append('show', params.show.toString())
       
-      const url = `/admin/shadowsocks-servers?${queryParams.toString()}`
+      // 兼容旧的offset参数，转换为page
+      if (params?.offset && !params?.page) {
+        const page = Math.floor(params.offset / (params.limit || 10)) + 1
+        queryParams.append('page', page.toString())
+      }
+      
+      const url = `/admin/servers?${queryParams.toString()}`
       
       console.log('发送服务器列表请求:', url)
       const response: ShadowsocksServerListResponse = await api.get(url)
@@ -46,36 +51,68 @@ export class ShadowsocksServerService implements IShadowsocksServerService {
 
   // 获取单个服务器详情
   async getServer(id: number): Promise<ShadowsocksServerDetailResponse> {
-    const response: ShadowsocksServerDetailResponse = await api.get(`/admin/shadowsocks-servers/${id}`)
+    const response: ShadowsocksServerDetailResponse = await api.get(`/admin/servers/${id}`)
     return response
   }
 
   // 创建新服务器
   async createServer(data: CreateShadowsocksServerRequest): Promise<ShadowsocksServerDetailResponse> {
-    const response: ShadowsocksServerDetailResponse = await api.post('/admin/shadowsocks-servers', data)
+    const response: ShadowsocksServerDetailResponse = await api.post('/admin/servers', data)
     return response
   }
 
   // 更新服务器信息（使用PUT方法完全更新）
   async updateServer(id: number, data: UpdateShadowsocksServerRequest): Promise<ShadowsocksServerDetailResponse> {
-    const response: ShadowsocksServerDetailResponse = await api.put(`/admin/shadowsocks-servers/${id}`, data)
+    const response: ShadowsocksServerDetailResponse = await api.put(`/admin/servers/${id}`, data)
     return response
   }
 
   // 部分更新服务器信息（使用PATCH方法）
   async patchServer(id: number, data: Partial<UpdateShadowsocksServerRequest>): Promise<ShadowsocksServerDetailResponse> {
-    const response: ShadowsocksServerDetailResponse = await api.patch(`/admin/shadowsocks-servers/${id}`, data)
+    const response: ShadowsocksServerDetailResponse = await api.patch(`/admin/servers/${id}`, data)
     return response
   }
 
   // 删除服务器
   async deleteServer(id: number): Promise<StandardResponse> {
-    const response: StandardResponse = await api.delete(`/admin/shadowsocks-servers/${id}`)
+    const response: StandardResponse = await api.delete(`/admin/servers/${id}`)
     return response
   }
 
-  // 注意：后端API中没有批量操作、状态更新、统计等接口
-  // 只有基本的CRUD操作：GET, POST, GET/{id}, PUT/{id}, DELETE/{id}, PATCH/{id}
+  // 批量更新服务器
+  async bulkUpdateServers(data: BulkUpdateServersRequest): Promise<StandardResponse> {
+    const response: StandardResponse = await api.post('/admin/servers/bulk/update', data)
+    return response
+  }
+
+  // 获取指定服务器组的服务器
+  async getServersByGroup(groupId: number): Promise<ShadowsocksServerListResponse> {
+    const response: ShadowsocksServerListResponse = await api.get(`/admin/servers/group/${groupId}`)
+    return response
+  }
+
+  // 获取服务器健康状态
+  async getServerHealth(id: number): Promise<StandardResponse> {
+    const response: StandardResponse = await api.get(`/admin/servers/${id}/health`)
+    return response
+  }
+
+  // 获取服务器统计信息
+  async getServerStatistics(id: number): Promise<StandardResponse> {
+    const response: StandardResponse = await api.get(`/admin/servers/${id}/statistics`)
+    return response
+  }
+
+  // 获取/设置服务器状态
+  async getServerStatus(id: number): Promise<StandardResponse> {
+    const response: StandardResponse = await api.get(`/admin/servers/${id}/status`)
+    return response
+  }
+
+  async updateServerStatus(id: number, status: { enabled?: boolean; maintenance?: boolean }): Promise<StandardResponse> {
+    const response: StandardResponse = await api.put(`/admin/servers/${id}/status`, status)
+    return response
+  }
 
   // 辅助方法：格式化服务器显示名称
   formatServerDisplayName(server: ShadowsocksServerResponse): string {
@@ -104,16 +141,14 @@ export class ShadowsocksServerService implements IShadowsocksServerService {
     return `${server.host}:${server.server_port}`
   }
 
-  // 辅助方法：格式化倍率显示（后端返回string）
-  formatRateMultiplier(rate: string): string {
-    const rateNum = parseFloat(rate)
-    if (isNaN(rateNum)) return '1.0x'
-    
-    return `${rateNum}x`
+  // 辅助方法：格式化倍率显示（后端返回number）
+  formatRateMultiplier(rate: number): string {
+    if (typeof rate !== 'number' || isNaN(rate)) return '1.0x'
+    return `${rate}x`
   }
 
   // 辅助方法：格式化速率限制（向后兼容）
-  formatRateLimit(rate: string): string {
+  formatRateLimit(rate: number): string {
     return this.formatRateMultiplier(rate)
   }
 
@@ -133,10 +168,13 @@ export class ShadowsocksServerService implements IShadowsocksServerService {
       errors.push('端口号必须在1-65535之间')
     }
     
-    // rate是string类型，不能直接比较
-    // if ('rate' in data && data.rate && data.rate < 0) {
-    //   errors.push('速率限制不能为负数')
-    // }
+    if ('port' in data && data.port && (data.port < 1 || data.port > 65535)) {
+      errors.push('端口号必须在1-65535之间')
+    }
+    
+    if ('rate' in data && data.rate && data.rate < 0.1) {
+      errors.push('倍率不能小于0.1')
+    }
     
     return errors
   }

@@ -15,36 +15,34 @@ import { subscriptionService } from "@/lib/subscription-service"
 import { SubscriptionPlan } from "@/lib/subscription-types"
 import { createPlanColumns } from "./columns"
 import { DataTable } from "@/components/ui/data-table"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { 
-  CreatePlanDialog
+  CreatePlanDialog,
+  EditPlanDialog,
+  PlanDetailDialog
 } from "@/components/subscriptions/subscription-plans"
+import { SubscriptionPlanMobileCard } from "@/components/subscriptions"
 
 export default function SubscriptionPlansPage() {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([])
   const [loading, setLoading] = useState(true)
+  const isMobile = useIsMobile()
   
-  // 分页状态 - 使用基于页码的分页（shadcn/ui标准）
-  const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
   const [totalItems, setTotalItems] = useState(0)
 
-  const loadData = useCallback(async (page: number = 1, limit: number = 10) => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
       
-      // 将页码转换为offset
-      const offset = (page - 1) * limit
-      
-      console.log('加载订阅计划列表，page:', page, 'offset:', offset, 'limit:', limit)
+      console.log('加载订阅计划列表')
       const response = await subscriptionService.getPlans({
-        offset: offset,
-        limit: limit
+        limit: 100, // 获取更多数据，让客户端分页处理
+        offset: 0
       })
       
       if (response.code === 0 && response.data) {
-        setPlans(response.data || [])
-        setTotalItems(response.total || 0)
-        setCurrentPage(page)
+        setPlans(response.data.items || [])
+        setTotalItems(response.data.pagination.total || 0)
       }
     } catch (error) {
       console.error('加载订阅计划列表失败:', error)
@@ -55,17 +53,40 @@ export default function SubscriptionPlansPage() {
 
   const handlePlanCreated = useCallback(() => {
     // 重新加载计划列表
-    loadData(currentPage, pageSize)
-  }, [loadData, currentPage, pageSize])
+    loadData()
+  }, [loadData])
 
   const handlePlanUpdated = useCallback(() => {
     // 重新加载计划列表
-    loadData(currentPage, pageSize)
-  }, [loadData, currentPage, pageSize])
+    loadData()
+  }, [loadData])
+
+  // 移动端操作处理
+  const handleViewPlan = useCallback((plan: SubscriptionPlan) => {
+    // 实现查看计划详情逻辑
+    console.log('View plan:', plan)
+  }, [])
+
+  const handleEditPlan = useCallback((plan: SubscriptionPlan) => {
+    // 实现编辑计划逻辑
+    console.log('Edit plan:', plan)
+  }, [])
+
+  const handleDeletePlan = useCallback(async (plan: SubscriptionPlan) => {
+    if (confirm('确定要删除这个订阅计划吗？此操作不可撤销。')) {
+      try {
+        await subscriptionService.deletePlan(plan.id)
+        loadData() // 重新加载数据
+      } catch (error) {
+        console.error('删除计划失败:', error)
+        alert('删除计划失败，请重试')
+      }
+    }
+  }, [loadData])
 
   useEffect(() => {
-    loadData(currentPage, pageSize)
-  }, [loadData, currentPage, pageSize])
+    loadData()
+  }, [loadData])
 
   return (
     <div className="flex flex-col">
@@ -95,43 +116,36 @@ export default function SubscriptionPlansPage() {
                 </div>
               ) : (
                 <>
-                  {/* 数据表格（支持服务端分页） */}
-                  <DataTable 
-                    columns={createPlanColumns({ 
-                      onPlanUpdated: handlePlanUpdated
-                    })} 
-                    data={plans}
-                    searchPlaceholder="搜索计划名称..."
-                    searchColumn="name"
-                    columnNames={{
-                      name: '计划名称',
-                      price: '价格',
-                      status: '状态',
-                      duration_days: '时长',
-                      data_limit_gb: '流量限制',
-                      device_limit: '设备限制',
-                      trial_days: '试用天数',
-                      created_at: '创建时间',
-                    }}
-                    manualPagination={true}
-                    pageCount={Math.ceil(totalItems / pageSize)}
-                    initialPagination={{ pageIndex: currentPage - 1, pageSize }}
-                    onPaginationChange={(updater) => {
-                      const newPagination = typeof updater === 'function' 
-                        ? updater({ pageIndex: currentPage - 1, pageSize })
-                        : updater
-                      const newPage = newPagination.pageIndex + 1
-                      const newPageSize = newPagination.pageSize
-                      
-                      if (newPageSize !== pageSize) {
-                        setPageSize(newPageSize)
-                        setCurrentPage(1)
-                        loadData(1, newPageSize)
-                      } else if (newPage !== currentPage) {
-                        loadData(newPage, pageSize)
-                      }
-                    }}
-                  />
+                  {/* 响应式数据显示 */}
+                  {isMobile ? (
+                    /* 移动端卡片视图 */
+                    <div className="space-y-4">
+                      {plans.map((plan) => (
+                        <SubscriptionPlanMobileCard
+                          key={plan.id}
+                          plan={plan}
+                          onView={handleViewPlan}
+                          onEdit={handleEditPlan}
+                          onDelete={handleDeletePlan}
+                        />
+                      ))}
+                      {plans.length === 0 && (
+                        <div className="text-center py-8 text-muted-foreground">
+                          暂无订阅计划数据
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    /* 桌面端表格视图 */
+                    <DataTable 
+                      columns={createPlanColumns({ 
+                        onPlanUpdated: handlePlanUpdated
+                      })} 
+                      data={plans}
+                      searchKey="name"
+                      searchPlaceholder="搜索计划名称..."
+                    />
+                  )}
                 </>
               )}
             </CardContent>

@@ -7,7 +7,6 @@ import {
   Eye,
   Trash2,
   Key,
-  ChevronsUpDown,
 } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -15,6 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ProviderIcon } from "@/components/ui/provider-icon"
+import { DataTableColumnHeader } from "@/components/ui/data-table-column-header"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -54,18 +54,9 @@ export const createColumns = (options?: ColumnsOptions): ColumnDef<UserResponse>
   },
   {
     accessorKey: "id",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium hover:bg-transparent justify-start"
-        >
-          ID
-          <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
-        </Button>
-      )
-    },
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="ID" />
+    ),
     cell: ({ row }) => (
       <div className="font-mono text-sm">
         {row.getValue("id")}
@@ -74,18 +65,9 @@ export const createColumns = (options?: ColumnsOptions): ColumnDef<UserResponse>
   },
   {
     accessorKey: "email",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium hover:bg-transparent justify-start"
-        >
-          用户
-          <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
-        </Button>
-      )
-    },
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="用户" />
+    ),
     cell: ({ row }) => {
       const user = row.original
       return (
@@ -110,11 +92,11 @@ export const createColumns = (options?: ColumnsOptions): ColumnDef<UserResponse>
   },
   {
     accessorKey: "role",
-    header: () => <div className="text-center">角色</div>,
+    header: () => <div>角色</div>,
     cell: ({ row }) => {
       const user = row.original
       return (
-        <div className="text-center">
+        <div>
           <QuickEditRole 
             user={user} 
             onUpdate={options?.onUserUpdated}
@@ -125,11 +107,11 @@ export const createColumns = (options?: ColumnsOptions): ColumnDef<UserResponse>
   },
   {
     accessorKey: "status",
-    header: () => <div className="text-center">状态</div>,
+    header: () => <div>状态</div>,
     cell: ({ row }) => {
       const user = row.original
       return (
-        <div className="text-center">
+        <div>
           <QuickEditStatus 
             user={user} 
             onUpdate={options?.onUserUpdated}
@@ -140,14 +122,14 @@ export const createColumns = (options?: ColumnsOptions): ColumnDef<UserResponse>
   },
   {
     id: "providers",
-    header: () => <div className="text-center">登录方式</div>,
+    header: () => <div>登录方式</div>,
     cell: ({ row }) => {
       const user = row.original
       const providers = userService.getUserProviders(user)
       
       return (
-        <div className="text-center">
-          <div className="flex flex-wrap gap-1 justify-center">
+        <div>
+          <div className="flex flex-wrap gap-1">
             {providers.map((provider) => {
               const config = userService.getProviderBadgeConfig(provider)
               return (
@@ -168,18 +150,9 @@ export const createColumns = (options?: ColumnsOptions): ColumnDef<UserResponse>
   },
   {
     accessorKey: "created_at",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium hover:bg-transparent justify-start"
-        >
-          注册时间
-          <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
-        </Button>
-      )
-    },
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="注册时间" />
+    ),
     cell: ({ row }) => (
       <div className="text-sm text-muted-foreground">
         {userService.formatDateTime(row.getValue("created_at"))}
@@ -188,18 +161,9 @@ export const createColumns = (options?: ColumnsOptions): ColumnDef<UserResponse>
   },
   {
     accessorKey: "last_login_at",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium hover:bg-transparent justify-start"
-        >
-          最后登录
-          <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
-        </Button>
-      )
-    },
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="最后登录" />
+    ),
     cell: ({ row }) => {
       const lastLogin = row.getValue("last_login_at") as string | null
       return (
@@ -214,6 +178,21 @@ export const createColumns = (options?: ColumnsOptions): ColumnDef<UserResponse>
     enableHiding: false,
     cell: ({ row }) => {
       const user = row.original
+      
+      const handleDeleteUser = async (user: UserResponse) => {
+        if (!confirm(`确定要删除用户 "${userService.formatUserDisplayName(user)}" 吗？此操作不可撤销。`)) {
+          return
+        }
+        
+        try {
+          await userService.deleteUser(user.id)
+          options?.onUserUpdated?.()
+        } catch (error) {
+          console.error('删除用户失败:', error)
+          alert('删除用户失败，请重试')
+        }
+      }
+      
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -255,7 +234,7 @@ export const createColumns = (options?: ColumnsOptions): ColumnDef<UserResponse>
             <DropdownMenuSeparator />
             <div 
               className="cursor-pointer flex items-center px-2 py-1.5 text-sm text-destructive hover:bg-accent hover:text-accent-foreground" 
-              onClick={() => console.log('删除用户:', user)}
+              onClick={() => handleDeleteUser(user)}
             >
               <Trash2 className="mr-2 h-4 w-4" />
               删除用户

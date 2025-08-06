@@ -1,14 +1,22 @@
 // 订阅管理相关的TypeScript类型定义
 
-// 订阅计划相关类型
+// 服务器组信息类型（用于显示）
+export interface ServerGroupInfo {
+  id: number
+  name: string
+  description?: string
+  status?: 'active' | 'inactive'
+}
+
+// 订阅计划响应类型 - 匹配 entities.SubscriptionPlanResponse
 export interface SubscriptionPlan {
   id: number
   name: string
   code: string
-  description: string
+  description?: string
   price: number
   currency: string
-  billing_cycle: 'monthly' | 'yearly' | 'quarterly'
+  billing_cycle: 'monthly' | 'yearly' | 'lifetime'
   billing_interval: number
   trial_period_days: number
   status: 'active' | 'inactive' | 'archived'
@@ -18,15 +26,17 @@ export interface SubscriptionPlan {
   is_recommended: boolean
   setup_fee: number
   cancellation_fee: number
-  traffic_limit: number
-  traffic_limit_gb: number
-  traffic_limit_text: string
-  traffic_reset_cycle: string
+  traffic_limit: number // 字节为单位
+  traffic_limit_gb: number // GB为单位（计算得出）
+  traffic_limit_text: string // 人类可读格式
+  traffic_reset_cycle: 'monthly' | 'never'
   created_at: string
   updated_at: string
-  // 可选字段 - 在实际API响应中可能不存在
   features?: string // JSON字符串
   limits?: string // JSON字符串
+  // 服务器组相关字段
+  default_server_group_ids?: number[] // 默认服务器组ID数组
+  server_groups?: ServerGroupInfo[] // 服务器组详细信息（用于显示）
 }
 
 // 用户订阅相关类型
@@ -74,23 +84,23 @@ export interface UserSubscription {
 export interface CreatePlanRequest {
   name: string
   code: string
-  description: string
+  description?: string
   price: number
   currency: string
-  billing_cycle: 'monthly' | 'yearly' | 'quarterly'
-  billing_interval: number
-  traffic_limit: number
-  traffic_reset_cycle: string
-  trial_period_days: number
-  setup_fee: number
-  cancellation_fee: number
-  status: 'active' | 'inactive'
-  is_visible: boolean
-  is_popular: boolean
-  is_recommended: boolean
-  sort_order: number
-  features: string
-  limits: string
+  billing_cycle: 'monthly' | 'yearly' | 'lifetime'
+  billing_interval?: number
+  traffic_limit: number // 必填：流量限制（字节）
+  traffic_reset_cycle: 'monthly' | 'never' // 必填：流量重置周期
+  trial_period_days?: number
+  setup_fee?: number
+  cancellation_fee?: number
+  is_visible?: boolean
+  is_popular?: boolean
+  is_recommended?: boolean
+  sort_order?: number
+  features?: string
+  limits?: string
+  default_server_group_ids: number[] // 新增：默认服务器组ID数组（必填）
 }
 
 export type UpdatePlanRequest = Partial<CreatePlanRequest>
@@ -98,12 +108,16 @@ export type UpdatePlanRequest = Partial<CreatePlanRequest>
 export interface CreateSubscriptionRequest {
   user_id: number
   subscription_plan_id: number
+  reason?: string
+  notes?: string
   start_date?: string
-  end_date?: string
   use_trial?: boolean
   skip_payment?: boolean
-  notes?: string
+  send_notification?: boolean
   server_group_ids?: number[]
+  custom_traffic_limit?: number
+  custom_traffic_reset_cycle?: string
+  disable_traffic_limit?: boolean
 }
 
 export interface UpdateSubscriptionRequest {
@@ -132,8 +146,23 @@ export interface SubscriptionFilters {
   offset?: number
 }
 
-// API响应类型
+// API响应类型 - 匹配实际API结构
 export interface PaginatedResponse<T> {
+  code: number
+  message: string
+  data: {
+    items: T[]
+    pagination: {
+      limit: number
+      page: number
+      total: number
+      total_pages?: number
+    }
+  }
+}
+
+// 旧格式（向后兼容）
+export interface LegacyPaginatedResponse<T> {
   code: number
   message: string
   data: T[]
@@ -159,7 +188,7 @@ export const SUBSCRIPTION_STATUS_CONFIG = {
 } as const
 
 export const PLAN_STATUS_CONFIG = {
-  active: { color: 'green', text: '激活', variant: 'default' as const },
+  active: { color: 'green', text: 'Active', variant: 'default' as const },
   inactive: { color: 'gray', text: '未激活', variant: 'secondary' as const },
   archived: { color: 'red', text: '已归档', variant: 'destructive' as const }
 } as const
@@ -167,8 +196,8 @@ export const PLAN_STATUS_CONFIG = {
 // 计费周期配置
 export const BILLING_CYCLE_CONFIG = {
   monthly: { text: '月付', interval: 1 },
-  quarterly: { text: '季付', interval: 3 },
-  yearly: { text: '年付', interval: 12 }
+  yearly: { text: '年付', interval: 12 },
+  lifetime: { text: '终身', interval: 0 }
 } as const
 
 // 货币配置

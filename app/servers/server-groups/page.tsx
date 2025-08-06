@@ -98,16 +98,8 @@ export default function ServerGroupsPage() {
                         onServerGroupUpdated: handleServerGroupUpdated
                       })} 
                       data={serverGroups}
-                      pageCount={Math.ceil(totalItems / pageSize)}
-                      currentPage={currentPage}
-                      pageSize={pageSize}
-                      totalItems={totalItems}
-                      onPageChange={(page) => loadData(page, pageSize)}
-                      onPageSizeChange={(newPageSize) => {
-                        setPageSize(newPageSize)
-                        setCurrentPage(1)
-                        loadData(1, newPageSize)
-                      }}
+                      searchKey="name"
+                      searchPlaceholder="搜索服务器组名称..."
                     />
                   </>
                 )}

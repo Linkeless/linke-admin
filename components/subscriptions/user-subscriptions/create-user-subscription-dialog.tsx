@@ -43,11 +43,15 @@ import { useEffect } from "react"
 const formSchema = z.object({
   user_id: z.number().min(1, "请输入用户ID"),
   subscription_plan_id: z.number().min(1, "请选择订阅计划"),
-  start_date: z.string().optional(),
-  end_date: z.string().optional(),
-  use_trial: z.boolean().default(false),
-  skip_payment: z.boolean().default(false),
+  reason: z.string().optional(),
   notes: z.string().optional(),
+  start_date: z.string().optional(),
+  use_trial: z.boolean().default(false),
+  skip_payment: z.boolean().default(true),
+  send_notification: z.boolean().default(true),
+  custom_traffic_limit: z.number().optional(),
+  custom_traffic_reset_cycle: z.string().optional(),
+  disable_traffic_limit: z.boolean().default(false),
 })
 
 type FormData = z.infer<typeof formSchema>
@@ -66,11 +70,15 @@ export function CreateUserSubscriptionDialog({ onSubscriptionCreated }: CreateUs
     defaultValues: {
       user_id: 0,
       subscription_plan_id: 0,
-      start_date: "",
-      end_date: "",
-      use_trial: false,
-      skip_payment: false,
+      reason: "管理员创建订阅",
       notes: "",
+      start_date: "",
+      use_trial: false,
+      skip_payment: true,
+      send_notification: true,
+      custom_traffic_limit: 0,
+      custom_traffic_reset_cycle: "monthly",
+      disable_traffic_limit: false,
     },
   })
 
@@ -83,7 +91,9 @@ export function CreateUserSubscriptionDialog({ onSubscriptionCreated }: CreateUs
     try {
       const response = await subscriptionService.getPlans({ limit: 100, offset: 0 })
       if (response.code === 0 && response.data) {
-        setPlans(response.data.filter(plan => plan.status === 'active'))
+        // API返回嵌套格式: { data: { items: [...], pagination: {...} } }
+        const allPlans = response.data.items || []
+        setPlans(allPlans.filter(plan => plan.status === 'active'))
       }
     } catch (error) {
       console.error('加载订阅计划失败:', error)
@@ -94,14 +104,19 @@ export function CreateUserSubscriptionDialog({ onSubscriptionCreated }: CreateUs
     try {
       setLoading(true)
       
+      // 使用新的管理员创建API
       const createData: CreateSubscriptionRequest = {
         user_id: data.user_id,
         subscription_plan_id: data.subscription_plan_id,
+        reason: data.reason || "管理员创建订阅",
+        notes: data.notes || undefined,
         start_date: data.start_date || undefined,
-        end_date: data.end_date || undefined,
         use_trial: data.use_trial,
         skip_payment: data.skip_payment,
-        notes: data.notes || undefined,
+        send_notification: data.send_notification,
+        custom_traffic_limit: data.custom_traffic_limit || undefined,
+        custom_traffic_reset_cycle: data.custom_traffic_reset_cycle || undefined,
+        disable_traffic_limit: data.disable_traffic_limit,
       }
 
       console.log('创建用户订阅数据:', createData)
@@ -191,37 +206,33 @@ export function CreateUserSubscriptionDialog({ onSubscriptionCreated }: CreateUs
               )}
             />
 
-            {/* 开始日期 */}
+            {/* 创建原因 */}
             <FormField
               control={form.control}
-              name="start_date"
+              name="reason"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>开始日期</FormLabel>
+                  <FormLabel>创建原因</FormLabel>
                   <FormControl>
-                    <Input 
-                      type="date" 
-                      {...field}
-                      min={new Date().toISOString().split('T')[0]}
-                    />
+                    <Input placeholder="管理员创建订阅" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            {/* 结束日期 */}
+            {/* 开始日期 */}
             <FormField
               control={form.control}
-              name="end_date"
+              name="start_date"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>结束日期（可选）</FormLabel>
+                  <FormLabel>开始日期（可选）</FormLabel>
                   <FormControl>
                     <Input 
                       type="date" 
                       {...field}
-                      min={form.watch('start_date') || new Date().toISOString().split('T')[0]}
+                      min={new Date().toISOString().split('T')[0]}
                     />
                   </FormControl>
                   <FormMessage />
@@ -256,6 +267,87 @@ export function CreateUserSubscriptionDialog({ onSubscriptionCreated }: CreateUs
                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
                   <div className="space-y-0.5">
                     <FormLabel className="text-base">跳过支付</FormLabel>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            {/* 发送通知 */}
+            <FormField
+              control={form.control}
+              name="send_notification"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">发送通知</FormLabel>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            {/* 自定义流量限制 */}
+            <FormField
+              control={form.control}
+              name="custom_traffic_limit"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>自定义流量限制（字节，可选）</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number"
+                      placeholder="留空使用计划默认值"
+                      {...field}
+                      onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* 流量重置周期 */}
+            <FormField
+              control={form.control}
+              name="custom_traffic_reset_cycle"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>流量重置周期（可选）</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="选择重置周期" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="monthly">每月</SelectItem>
+                      <SelectItem value="never">永不重置</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* 禁用流量限制 */}
+            <FormField
+              control={form.control}
+              name="disable_traffic_limit"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">禁用流量限制</FormLabel>
                   </div>
                   <FormControl>
                     <Switch

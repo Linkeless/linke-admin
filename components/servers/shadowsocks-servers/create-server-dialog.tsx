@@ -45,10 +45,10 @@ const formSchema = z.object({
   name: z.string().min(1, "服务器名称不能为空").max(255, "服务器名称不能超过255个字符"),
   host: z.string().min(1, "主机地址不能为空").max(255, "主机地址不能超过255个字符"),
   server_port: z.number().min(1, "端口必须大于0").max(65535, "端口不能超过65535"),
-  port: z.string().min(1, "端口不能为空").max(11, "端口字符串不能超过11个字符"),
+  port: z.number().min(1, "端口必须大于0").max(65535, "端口不能超过65535"),
   cipher: z.string().min(1, "请选择加密方式").max(255, "加密方式不能超过255个字符"),
   group_id: z.number().min(1, "请选择服务器组"),
-  rate: z.string().max(11, "倍率字符串不能超过11个字符"),
+  rate: z.number().min(0.1, "倍率必须大于等于0.1"),
   sort: z.number().optional(),
   parent_id: z.number().optional(),
   route_id: z.string().max(255, "路由ID不能超过255个字符").optional(),
@@ -76,10 +76,10 @@ export function CreateServerDialog({ onServerCreated }: CreateServerDialogProps)
       name: "",
       host: "",
       server_port: 443,
-      port: "443",
+      port: 443,
       cipher: "aes-256-gcm",
       group_id: 1,
-      rate: "1.0",
+      rate: 1.0,
       sort: 0,
       parent_id: 0,
       route_id: "",
@@ -215,7 +215,12 @@ export function CreateServerDialog({ onServerCreated }: CreateServerDialogProps)
                 <FormItem>
                   <FormLabel>端口</FormLabel>
                   <FormControl>
-                    <Input placeholder="443" {...field} />
+                    <Input 
+                      type="number" 
+                      placeholder="443" 
+                      {...field}
+                      onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -250,7 +255,14 @@ export function CreateServerDialog({ onServerCreated }: CreateServerDialogProps)
                 <FormItem>
                   <FormLabel>倍率</FormLabel>
                   <FormControl>
-                    <Input placeholder="1.0" {...field} />
+                    <Input 
+                      type="number" 
+                      step="0.1"
+                      min="0.1"
+                      placeholder="1.0" 
+                      {...field}
+                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 1.0)}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

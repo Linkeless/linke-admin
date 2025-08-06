@@ -1,9 +1,10 @@
 'use client'
 
 import { ColumnDef } from "@tanstack/react-table"
-import { MoreHorizontal, Trash2, Users, Crown, Activity, ChevronsUpDown, RotateCcw, Pause, Eye, Edit } from "lucide-react"
+import { MoreHorizontal, Trash2, Users, Crown, Activity, RotateCcw, Pause, Eye, Edit } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { DataTableColumnHeader } from "@/components/ui/data-table-column-header"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,18 +28,9 @@ interface ColumnsProps {
 export const createUserSubscriptionColumns = ({ onSubscriptionUpdated }: ColumnsProps): ColumnDef<UserSubscription>[] => [
   {
     accessorKey: "user",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium hover:bg-transparent justify-start"
-        >
-          用户信息
-          <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
-        </Button>
-      )
-    },
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="用户信息" />
+    ),
     cell: ({ row }) => {
       const subscription = row.original
       const user = subscription.user
@@ -57,13 +49,13 @@ export const createUserSubscriptionColumns = ({ onSubscriptionUpdated }: Columns
   },
   {
     accessorKey: "subscription_plan",
-    header: () => <div className="text-center">订阅计划</div>,
+    header: () => <div>订阅计划</div>,
     cell: ({ row }) => {
       const subscription = row.original
       const plan = subscription.subscription_plan
       return (
-        <div className="text-center">
-          <div className="flex items-center gap-2 justify-center">
+        <div>
+          <div className="flex items-center gap-2">
             <Crown className="h-4 w-4 text-muted-foreground" />
             <div className="flex flex-col">
               <Badge variant="outline">
@@ -82,13 +74,13 @@ export const createUserSubscriptionColumns = ({ onSubscriptionUpdated }: Columns
   },
   {
     accessorKey: "status",
-    header: () => <div className="text-center">状态</div>,
+    header: () => <div>状态</div>,
     cell: ({ row }) => {
       const subscription = row.original
       const statusConfig = SUBSCRIPTION_STATUS_CONFIG[subscription.status]
       
       return (
-        <div className="text-center">
+        <div>
           <Badge 
             variant={statusConfig?.variant || "secondary"} 
             className="text-xs"
@@ -101,18 +93,9 @@ export const createUserSubscriptionColumns = ({ onSubscriptionUpdated }: Columns
   },
   {
     accessorKey: "current_period_start",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium hover:bg-transparent justify-start"
-        >
-          当前周期
-          <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
-        </Button>
-      )
-    },
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="当前周期" />
+    ),
     cell: ({ row }) => {
       const subscription = row.original
       return (
@@ -129,12 +112,12 @@ export const createUserSubscriptionColumns = ({ onSubscriptionUpdated }: Columns
   },
   {
     accessorKey: "auto_renew",
-    header: () => <div className="text-center">自动续费</div>,
+    header: () => <div>自动续费</div>,
     cell: ({ row }) => {
       const subscription = row.original
       
       return (
-        <div className="text-center">
+        <div>
           <Badge 
             variant={subscription.auto_renew ? "default" : "secondary"} 
             className={`text-xs ${subscription.auto_renew ? 'bg-green-100 text-green-800 border-green-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}
@@ -147,18 +130,9 @@ export const createUserSubscriptionColumns = ({ onSubscriptionUpdated }: Columns
   },
   {
     accessorKey: "days_left",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium hover:bg-transparent justify-start"
-        >
-          剩余天数
-          <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
-        </Button>
-      )
-    },
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="剩余天数" />
+    ),
     cell: ({ row }) => {
       const subscription = row.original
       return (
@@ -173,11 +147,11 @@ export const createUserSubscriptionColumns = ({ onSubscriptionUpdated }: Columns
   },
   {
     accessorKey: "is_in_trial",
-    header: () => <div className="text-center">试用状态</div>,
+    header: () => <div>试用状态</div>,
     cell: ({ row }) => {
       const subscription = row.original
       return (
-        <div className="text-center">
+        <div>
           {!subscription.is_in_trial ? (
             <span className="text-sm text-muted-foreground">-</span>
           ) : (
@@ -191,18 +165,9 @@ export const createUserSubscriptionColumns = ({ onSubscriptionUpdated }: Columns
   },
   {
     accessorKey: "created_at",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium hover:bg-transparent justify-start"
-        >
-          创建时间
-          <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
-        </Button>
-      )
-    },
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="创建时间" />
+    ),
     cell: ({ row }) => {
       const subscription = row.original
       return (
@@ -219,9 +184,10 @@ export const createUserSubscriptionColumns = ({ onSubscriptionUpdated }: Columns
       const subscription = row.original
       
       const handleDelete = async () => {
-        if (confirm('确定要删除这个订阅吗？此操作不可撤销。')) {
+        if (confirm('确定要删除这个订阅吗？此操作将取消订阅且不可撤销。')) {
           try {
-            await subscriptionService.deleteUserSubscription(subscription.id)
+            // 使用取消订阅功能替代删除
+            await subscriptionService.cancelUserSubscription(subscription.id, '管理员删除操作')
             onSubscriptionUpdated()
           } catch (error) {
             console.error('删除订阅失败:', error)
@@ -232,7 +198,8 @@ export const createUserSubscriptionColumns = ({ onSubscriptionUpdated }: Columns
 
       const handleRenew = async () => {
         try {
-          await subscriptionService.renewUserSubscription(subscription.id)
+          // 使用延长订阅功能替代续费（延长30天）
+          await subscriptionService.extendUserSubscription(subscription.id, 30, '管理员手动续费')
           onSubscriptionUpdated()
         } catch (error) {
           console.error('续费订阅失败:', error)

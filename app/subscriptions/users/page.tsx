@@ -42,10 +42,9 @@ export default function UserSubscriptionsPage() {
       })
       
       if (response.code === 0 && response.data) {
-        // 后端直接返回数组格式
-        setSubscriptions(response.data || [])
-        // 分页信息在根级别
-        setTotalItems(response.total || 0)
+        // API返回嵌套格式: { data: { items: [...], pagination: {...} } }
+        setSubscriptions(response.data.items || [])
+        setTotalItems(response.data.pagination?.total || 0)
         setCurrentPage(page)
       }
     } catch (error) {

@@ -1,9 +1,10 @@
 'use client'
 
 import { ColumnDef } from "@tanstack/react-table"
-import { MoreHorizontal, Trash2, Server, Shield, Activity, ChevronsUpDown, Eye, Edit } from "lucide-react"
+import { MoreHorizontal, Trash2, Server, Shield, Activity, Eye, Edit } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { DataTableColumnHeader } from "@/components/ui/data-table-column-header"
 // import { Checkbox } from "@/components/ui/checkbox"
 import {
   DropdownMenu,
@@ -28,18 +29,9 @@ interface ColumnsProps {
 export const createColumns = ({ onServerUpdated }: ColumnsProps): ColumnDef<ShadowsocksServerResponse>[] => [
   {
     accessorKey: "name",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium hover:bg-transparent justify-start"
-        >
-          服务器名称
-          <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
-        </Button>
-      )
-    },
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="服务器名称" />
+    ),
     cell: ({ row }) => {
       const server = row.original
       return (
@@ -57,95 +49,69 @@ export const createColumns = ({ onServerUpdated }: ColumnsProps): ColumnDef<Shad
   },
   {
     accessorKey: "cipher",
-    header: () => <div className="text-center">加密方式</div>,
+    header: "加密方式",
     cell: ({ row }) => {
       const server = row.original
       return (
-        <div className="text-center">
-          <div className="flex items-center gap-2 justify-center">
-            <Shield className="h-4 w-4 text-muted-foreground" />
-            <Badge variant="outline">
-              {shadowsocksServerService.getCipherDisplayName(server.cipher)}
-            </Badge>
-          </div>
+        <div className="flex items-center gap-2">
+          <Shield className="h-4 w-4 text-muted-foreground" />
+          <Badge variant="outline">
+            {shadowsocksServerService.getCipherDisplayName(server.cipher)}
+          </Badge>
         </div>
       )
     },
   },
   {
     accessorKey: "show",
-    header: () => <div className="text-center">显示状态</div>,
+    header: "显示状态",
     cell: ({ row }) => {
       const server = row.original
       const isVisible = server.show === 1
       
       return (
-        <div className="text-center">
-          <Badge 
-            variant={isVisible ? "default" : "secondary"} 
-            className={`text-xs ${isVisible ? 'bg-green-100 text-green-800 border-green-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}
-          >
-            {isVisible ? "显示" : "隐藏"}
-          </Badge>
-        </div>
+        <Badge 
+          variant={isVisible ? "default" : "secondary"} 
+          className={`text-xs ${isVisible ? 'bg-green-100 text-green-800 border-green-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}
+        >
+          {isVisible ? "显示" : "隐藏"}
+        </Badge>
       )
     },
   },
   {
     accessorKey: "rate",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium hover:bg-transparent justify-start"
-        >
-          倍率
-          <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
-        </Button>
-      )
-    },
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="倍率" />
+    ),
     cell: ({ row }) => {
       const server = row.original
       return (
-        <div className="text-center">
-          <div className="flex items-center gap-1 justify-center">
-            <Activity className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">
-              {shadowsocksServerService.formatRateMultiplier(server.rate)}
-            </span>
-          </div>
+        <div className="flex items-center gap-1">
+          <Activity className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">
+            {shadowsocksServerService.formatRateMultiplier(server.rate)}
+          </span>
         </div>
       )
     },
   },
   {
     accessorKey: "sort",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium hover:bg-transparent justify-start"
-        >
-          排序
-          <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
-        </Button>
-      )
-    },
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="排序" />
+    ),
     cell: ({ row }) => {
       const server = row.original
       return (
-        <div className="text-center">
-          <Badge variant="outline" className="text-xs">
-            {server.sort}
-          </Badge>
-        </div>
+        <Badge variant="outline" className="text-xs">
+          {server.sort}
+        </Badge>
       )
     },
   },
   {
-    accessorKey: "parent_id", 
+    accessorKey: "parent_id",
     header: "父服务器",
     cell: ({ row }) => {
       const server = row.original
@@ -213,18 +179,9 @@ export const createColumns = ({ onServerUpdated }: ColumnsProps): ColumnDef<Shad
   },
   {
     accessorKey: "created_at",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium hover:bg-transparent justify-start"
-        >
-          创建时间
-          <ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
-        </Button>
-      )
-    },
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="创建时间" />
+    ),
     cell: ({ row }) => {
       const server = row.original
       return (

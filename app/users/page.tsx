@@ -134,38 +134,8 @@ export default function UsersPage() {
                         onUserUpdated: handleUserUpdated
                       })} 
                       data={users}
+                      searchKey="email"
                       searchPlaceholder="筛选邮箱..."
-                      searchColumn="email"
-                      columnNames={{
-                        id: 'ID',
-                        email: '用户',
-                        role: '角色',
-                        status: '状态',
-                        providers: '登录方式',
-                        created_at: '注册时间',
-                        last_login_at: '最后登录',
-                      }}
-                      manualPagination={true}
-                      pageCount={totalPages}
-                      totalItems={totalItems}
-                      currentPage={currentPage}
-                      pageSize={pageSize}
-                      initialPagination={{ pageIndex: currentPage - 1, pageSize }}
-                      onPaginationChange={(updater) => {
-                        const newPagination = typeof updater === 'function' 
-                          ? updater({ pageIndex: currentPage - 1, pageSize })
-                          : updater
-                        const newPage = newPagination.pageIndex + 1
-                        const newPageSize = newPagination.pageSize
-                        
-                        if (newPageSize !== pageSize) {
-                          setPageSize(newPageSize)
-                          setCurrentPage(1)
-                          loadData(1, newPageSize)
-                        } else if (newPage !== currentPage) {
-                          loadData(newPage, pageSize)
-                        }
-                      }}
                       onSelectionChange={handleSelectionChange}
                     />
                   </>

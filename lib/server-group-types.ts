@@ -68,4 +68,10 @@ export interface ServerGroupService {
   
   // 删除服务器组
   deleteServerGroup(id: number): Promise<StandardResponse>
+  
+  // 新增：获取服务器组内的所有服务器
+  getServerGroupServers(id: number): Promise<StandardResponse>
+  
+  // 新增：获取服务器组统计信息
+  getServerGroupStatistics(id: number): Promise<StandardResponse>
 }
