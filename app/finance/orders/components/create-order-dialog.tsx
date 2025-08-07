@@ -8,17 +8,21 @@ import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -26,26 +30,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Plus, User, Package, CreditCard } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 
-import { CreateSubscriptionOrderRequest } from '@/lib/order-types'
 import { orderService } from '@/lib/order-service'
+import { CreateSubscriptionOrderRequest } from '@/lib/order-types'
 
 // 表单验证模式
 const createOrderSchema = z.object({
   user_id: z.number().min(1, '请输入用户ID'),
   subscription_plan_id: z.number().min(1, '请输入订阅计划ID'),
-  order_type: z.enum(['new', 'renewal'], {
-    required_error: '请选择订单类型',
+  order_type: z.enum(['new', 'renewal', 'upgrade', 'downgrade'], {
+    message: '请选择订单类型',
   }),
   payment_method: z.string().min(1, '请选择支付方式'),
   payment_gateway: z.string().min(1, '请选择支付网关'),
   coupon_code: z.string().optional(),
+  return_url: z.union([
+    z.string().refine((val) => !val || /^https?:\/\/.+/.test(val), {
+      message: '请输入有效的URL地址'
+    }),
+    z.literal('')
+  ]).optional(),
   metadata: z.string().optional(),
-  return_url: z.string().optional(),
   use_default_payment: z.boolean().optional(),
 })
 
@@ -57,10 +65,10 @@ interface CreateOrderDialogProps {
   onOrderCreated?: () => void
 }
 
-export function CreateOrderDialog({ 
-  open, 
-  onOpenChange, 
-  onOrderCreated 
+export function CreateOrderDialog({
+  open,
+  onOpenChange,
+  onOrderCreated,
 }: CreateOrderDialogProps) {
   const [loading, setLoading] = useState(false)
 
@@ -70,19 +78,19 @@ export function CreateOrderDialog({
       user_id: 0,
       subscription_plan_id: 0,
       order_type: 'new',
-      payment_method: '',
-      payment_gateway: '',
+      payment_method: 'credit_card',
+      payment_gateway: 'stripe',
       coupon_code: '',
-      metadata: '',
       return_url: '',
+      metadata: '',
       use_default_payment: false,
-    }
+    },
   })
 
   const handleSubmit = async (data: CreateOrderFormData) => {
     try {
       setLoading(true)
-      
+
       // 构建请求数据
       const requestData: CreateSubscriptionOrderRequest = {
         user_id: data.user_id,
@@ -94,250 +102,249 @@ export function CreateOrderDialog({
 
       // 添加可选字段
       if (data.coupon_code) requestData.coupon_code = data.coupon_code
-      if (data.metadata) requestData.metadata = data.metadata
       if (data.return_url) requestData.return_url = data.return_url
+      if (data.metadata) requestData.metadata = data.metadata
       if (data.use_default_payment) requestData.use_default_payment = data.use_default_payment
 
       const response = await orderService.createSubscriptionOrder(requestData)
 
       if (response.code === 0) {
         toast.success('订单创建成功')
+        form.reset()
         onOrderCreated?.()
         onOpenChange(false)
-        form.reset()
       } else {
-        throw new Error(response.message || '创建失败')
+        toast.error(response.message || '创建订单失败')
       }
     } catch (error) {
       console.error('创建订单失败:', error)
-      toast.error(error instanceof Error ? error.message : '创建订单失败，请稍后重试')
+      toast.error('创建订单失败，请重试')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleFormAction = async (formData: FormData) => {
-    // Trigger form validation and submission using react-hook-form
-    const isValid = await form.trigger()
-    if (isValid) {
-      const values = form.getValues()
-      await handleSubmit(values)
-    }
-  }
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Plus className="h-5 w-5" />
-            创建订单
-          </DialogTitle>
+          <DialogTitle>创建订单</DialogTitle>
+          <DialogDescription>
+            为用户创建新的订阅订单
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          <form action={handleFormAction} className="space-y-6">
-            {/* 用户信息 */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  用户信息
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="user_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>用户ID *</FormLabel>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              {/* 用户ID */}
+              <FormField
+                control={form.control}
+                name="user_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>用户ID</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="输入用户ID"
+                        {...field}
+                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      订单所属的用户ID
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* 订阅计划ID */}
+              <FormField
+                control={form.control}
+                name="subscription_plan_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>订阅计划ID</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="输入订阅计划ID"
+                        {...field}
+                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      用户要订阅的计划ID
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* 订单类型 */}
+              <FormField
+                control={form.control}
+                name="order_type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>订单类型</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <Input 
-                          type="number" 
-                          placeholder="请输入用户ID"
-                          {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                        />
+                        <SelectTrigger>
+                          <SelectValue placeholder="选择订单类型" />
+                        </SelectTrigger>
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
+                      <SelectContent>
+                        <SelectItem value="new">新订阅</SelectItem>
+                        <SelectItem value="renewal">续费</SelectItem>
+                        <SelectItem value="upgrade">升级</SelectItem>
+                        <SelectItem value="downgrade">降级</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            {/* 订阅信息 */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Package className="h-5 w-5" />
-                  订阅信息
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="subscription_plan_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>订阅计划ID *</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="请输入订阅计划ID"
-                            {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+              {/* 优惠券代码 */}
+              <FormField
+                control={form.control}
+                name="coupon_code"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>优惠券代码（可选）</FormLabel>
+                    <FormControl>
+                      <Input placeholder="输入优惠券代码" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                  <FormField
-                    control={form.control}
-                    name="order_type"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>订单类型 *</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="选择订单类型" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="new">新订单</SelectItem>
-                            <SelectItem value="renewal">续费</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* 支付信息 */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="h-5 w-5" />
-                  支付信息
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="payment_method"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>支付方式 *</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="选择支付方式" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {orderService.getPaymentMethods().map((method) => (
-                              <SelectItem key={method.value} value={method.value}>
-                                {method.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="payment_gateway"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>支付网关 *</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="选择支付网关" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {orderService.getPaymentGateways().map((gateway) => (
-                              <SelectItem key={gateway.value} value={gateway.value}>
-                                {gateway.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="coupon_code"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>优惠券代码</FormLabel>
+              {/* 支付方式 */}
+              <FormField
+                control={form.control}
+                name="payment_method"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>支付方式</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <Input placeholder="输入优惠券代码（可选）" {...field} />
+                        <SelectTrigger>
+                          <SelectValue placeholder="选择支付方式" />
+                        </SelectTrigger>
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                      <SelectContent>
+                        <SelectItem value="credit_card">信用卡</SelectItem>
+                        <SelectItem value="alipay">支付宝</SelectItem>
+                        <SelectItem value="wechat">微信支付</SelectItem>
+                        <SelectItem value="paypal">PayPal</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <FormField
-                  control={form.control}
-                  name="return_url"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>返回URL</FormLabel>
+              {/* 支付网关 */}
+              <FormField
+                control={form.control}
+                name="payment_gateway"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>支付网关</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <Input 
-                          type="url" 
-                          placeholder="支付完成后的返回URL（可选）" 
-                          {...field} 
-                        />
+                        <SelectTrigger>
+                          <SelectValue placeholder="选择支付网关" />
+                        </SelectTrigger>
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                      <SelectContent>
+                        <SelectItem value="stripe">Stripe</SelectItem>
+                        <SelectItem value="epay">易支付</SelectItem>
+                        <SelectItem value="paypal">PayPal</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-                <FormField
-                  control={form.control}
-                  name="metadata"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>元数据</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="附加元数据（可选）" 
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
+            {/* 返回URL */}
+            <FormField
+              control={form.control}
+              name="return_url"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>返回URL（可选）</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="url"
+                      placeholder="https://example.com/success"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    支付成功后的跳转地址
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-            {/* 操作按钮 */}
-            <div className="flex justify-end space-x-2 pt-4 border-t">
-              <Button 
-                type="button" 
-                variant="outline" 
+            {/* 元数据 */}
+            <FormField
+              control={form.control}
+              name="metadata"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>元数据（可选）</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="输入JSON格式的元数据"
+                      className="min-h-[80px]"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    额外的订单信息，JSON格式
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* 使用默认支付方式 */}
+            <FormField
+              control={form.control}
+              name="use_default_payment"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>
+                      使用用户默认支付方式
+                    </FormLabel>
+                    <FormDescription>
+                      如果用户已绑定支付方式，将使用其默认支付方式
+                    </FormDescription>
+                  </div>
+                </FormItem>
+              )}
+            />
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => onOpenChange(false)}
                 disabled={loading}
               >
@@ -346,7 +353,7 @@ export function CreateOrderDialog({
               <Button type="submit" disabled={loading}>
                 {loading ? '创建中...' : '创建订单'}
               </Button>
-            </div>
+            </DialogFooter>
           </form>
         </Form>
       </DialogContent>

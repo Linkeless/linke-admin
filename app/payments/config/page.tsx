@@ -8,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { CreditCard } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 
@@ -44,8 +45,9 @@ export default function PaymentConfigPage() {
       
       console.log('Payment Config API Response:', response) // 调试信息
       
-      if (response.code === 0 && response.data) {
+      if (response.code === 0) {
         // 实际API返回的是 {code, message, data: [...], total, limit, offset}
+        // data 可能为 null（空数据情况），需要正确处理
         setPaymentConfigs(response.data || [])
         setTotalItems(response.total || 0)
         setCurrentPage(page)
@@ -113,47 +115,59 @@ export default function PaymentConfigPage() {
                 <div className="flex items-center justify-center py-8">
                   <p className="text-muted-foreground">加载中...</p>
                 </div>
+              ) : paymentConfigs.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                  <CreditCard className="h-12 w-12 text-muted-foreground" />
+                  <div className="text-center space-y-2">
+                    <h3 className="text-lg font-medium">暂无支付配置</h3>
+                    <p className="text-sm text-muted-foreground">
+                      点击右上角"创建配置"按钮添加第一个支付配置
+                    </p>
+                  </div>
+                  <CreatePaymentConfigDialog onConfigCreated={handleConfigCreated} />
+                </div>
               ) : (
                 <>
-                  {/* 数据表格（支持服务端分页） */}
+                  {/* 数据表格 */}
                   <DataTable 
                     columns={createColumns({ 
                       onConfigUpdated: handleConfigUpdated,
                       onEdit: handleEdit
                     })} 
                     data={paymentConfigs}
+                    searchKey="name"
                     searchPlaceholder="搜索配置名称..."
-                    searchColumn="name"
-                    columnNames={{
-                      name: '名称',
-                      gateway: '支付网关',
-                      method: '支付方式',
-                      environment: '环境',
-                      is_enabled: '状态',
-                      created_at: '创建时间',
-                    }}
-                    manualPagination={true}
-                    pageCount={Math.ceil(totalItems / pageSize)}
-                    totalItems={totalItems}
-                    currentPage={currentPage}
-                    pageSize={pageSize}
-                    initialPagination={{ pageIndex: currentPage - 1, pageSize }}
-                    onPaginationChange={(updater) => {
-                      const newPagination = typeof updater === 'function' 
-                        ? updater({ pageIndex: currentPage - 1, pageSize })
-                        : updater
-                      const newPage = newPagination.pageIndex + 1
-                      const newPageSize = newPagination.pageSize
-                      
-                      if (newPageSize !== pageSize) {
-                        setPageSize(newPageSize)
-                        setCurrentPage(1)
-                        loadData(1, newPageSize)
-                      } else if (newPage !== currentPage) {
-                        loadData(newPage, pageSize)
-                      }
-                    }}
                   />
+                  
+                  {/* 自定义分页控制 */}
+                  {totalItems > pageSize && (
+                    <div className="flex items-center justify-between px-2 py-4">
+                      <div className="text-sm text-muted-foreground">
+                        共 {totalItems} 个配置，当前显示第 {currentPage} 页
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => loadData(Math.max(1, currentPage - 1), pageSize)}
+                          disabled={currentPage <= 1}
+                        >
+                          上一页
+                        </Button>
+                        <span className="px-3 py-1 text-sm">
+                          {currentPage} / {Math.ceil(totalItems / pageSize)}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => loadData(Math.min(Math.ceil(totalItems / pageSize), currentPage + 1), pageSize)}
+                          disabled={currentPage >= Math.ceil(totalItems / pageSize)}
+                        >
+                          下一页
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </CardContent>

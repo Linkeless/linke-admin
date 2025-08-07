@@ -1,220 +1,210 @@
 'use client'
 
-import { useEffect, useState, useCallback } from "react"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { ShoppingCart, Plus } from "lucide-react"
-import { PageHeader } from "@/components/layout/page-header"
+import { useEffect, useState, useCallback, useMemo } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { DataTable } from '@/components/ui/data-table'
+import { Plus, ShoppingCart } from 'lucide-react'
+import { toast } from 'sonner'
 
-import { orderService } from "@/lib/order-service"
-import { SubscriptionOrderResponse } from "@/lib/order-types"
-import { createColumns } from "./columns"
-import { DataTable } from "@/components/ui/data-table"
-import { OrderStatsCards } from "@/components/finance/orders/order-stats-cards"
-import { OrderFilters } from "@/components/finance/orders/order-filters"
-import { OrderDetailDialog, CreateOrderDialog } from "./components"
+import { orderService } from '@/lib/order-service'
+import { SubscriptionOrderResponse, OrderQueryParams } from '@/lib/order-types'
+import { createColumns } from './columns'
+import { OrderStatsCards } from './components/order-stats-cards'
+import { OrderDetailDialog } from './components/order-detail-dialog'
+import { CreateOrderDialog } from './components/create-order-dialog'
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<SubscriptionOrderResponse[]>([])
   const [loading, setLoading] = useState(true)
-  
-  // 分页状态 - 使用基于页码的分页（shadcn/ui标准）
-  const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
   const [totalItems, setTotalItems] = useState(0)
-
-  // 筛选状态
-  const [filters, setFilters] = useState({
-    status: 'all',
-    order_type: 'all',
-    payment_method: 'all',
-    payment_gateway: 'all',
-    search: '',
-    start_date: '',
-    end_date: '',
+  
+  // 分页状态
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
   })
 
-  // 对话框状态
-  const [showCreateDialog, setShowCreateDialog] = useState(false)
-  const [showDetailDialog, setShowDetailDialog] = useState(false)
-  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null)
+  // 基础查询参数 - 使用 useMemo 避免重复创建对象
+  const baseParams = useMemo<OrderQueryParams>(() => ({
+    limit: 10,
+    offset: 0,
+  }), [])
 
-  const loadData = useCallback(async (page: number = 1, limit: number = 10, currentFilters = filters) => {
+  // 对话框状态
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null)
+  const [showDetailDialog, setShowDetailDialog] = useState(false)
+  const [showCreateDialog, setShowCreateDialog] = useState(false)
+
+  // 加载订单数据
+  const loadOrders = useCallback(async () => {
     try {
       setLoading(true)
       
-      // 将页码转换为offset
-      const offset = (page - 1) * limit
-      
-      // 构建查询参数
-      const queryParams: Record<string, string | number> = {
-        offset: offset,
-        limit: limit,
-        sort_by: 'created_at',
-        sort_order: 'desc',
+      const queryParams: OrderQueryParams = {
+        ...baseParams,
+        limit: pagination.pageSize,
+        offset: pagination.pageIndex * pagination.pageSize,
       }
-
-      // 添加筛选条件
-      Object.entries(currentFilters).forEach(([key, value]) => {
-        if (value && value !== '' && value !== 'all') {
-          // 映射参数名称以匹配API规范
-          if (key === 'start_date') {
-            queryParams.date_from = value
-          } else if (key === 'end_date') {
-            queryParams.date_to = value
-          } else {
-            queryParams[key] = value
-          }
-        }
-      })
       
       const response = await orderService.getOrders(queryParams)
       
-      console.log('Orders API Response:', response) // 调试信息
-      
-      if (response.code === 0 && response.data) {
+      if (response.code === 0) {
         setOrders(response.data || [])
         setTotalItems(response.total || 0)
-        setCurrentPage(page)
       } else {
-        console.error('API返回错误:', response)
+        toast.error(response.message || '加载订单失败')
         setOrders([])
         setTotalItems(0)
       }
     } catch (error) {
-      console.error('加载订单列表失败:', error)
+      console.error('加载订单失败:', error)
+      toast.error('加载订单失败，请重试')
       setOrders([])
       setTotalItems(0)
     } finally {
       setLoading(false)
     }
-  }, [filters])
+  }, [baseParams, pagination.pageIndex, pagination.pageSize])
 
-  const handleOrderUpdated = useCallback(() => {
-    // 重新加载订单列表
-    loadData(currentPage, pageSize)
-  }, [loadData, currentPage, pageSize])
 
-  const handleFiltersChange = useCallback((newFilters: typeof filters) => {
-    setFilters(newFilters)
-    setCurrentPage(1) // 重置到第一页
-    loadData(1, pageSize, newFilters)
-  }, [loadData, pageSize])
+  // 处理分页变化
+  const handlePaginationChange = useCallback((newPagination: typeof pagination) => {
+    setPagination(newPagination)
+  }, [])
 
+  // 查看订单详情
   const handleViewDetail = useCallback((orderId: number) => {
     setSelectedOrderId(orderId)
     setShowDetailDialog(true)
   }, [])
 
+  // 订单更新后的回调
+  const handleOrderUpdated = useCallback(() => {
+    loadOrders()
+  }, [loadOrders])
+
+  // 取消订单
+  const handleCancelOrder = useCallback(async (orderId: number) => {
+    if (!confirm('确定要取消此订单吗？')) return
+
+    try {
+      const response = await orderService.cancelOrder(orderId, {
+        reason: '管理员手动取消',
+      })
+      
+      if (response.code === 0) {
+        toast.success('订单已取消')
+        loadOrders()
+      } else {
+        toast.error(response.message || '取消订单失败')
+      }
+    } catch (error) {
+      console.error('取消订单失败:', error)
+      toast.error('取消订单失败，请重试')
+    }
+  }, [loadOrders])
+
+  // 初始加载
   useEffect(() => {
-    loadData(currentPage, pageSize)
-  }, [loadData, currentPage, pageSize])
+    loadOrders()
+  }, [loadOrders])
+
+  // 表格列定义
+  const columns = createColumns({
+    onViewDetail: handleViewDetail,
+    onCancelOrder: handleCancelOrder,
+    onOrderUpdated: handleOrderUpdated,
+  })
 
   return (
-    <div className="flex flex-col">
-      <PageHeader 
-        title="订单管理" 
-        description="管理系统订单和支付记录"
-        action={
+    <div className="space-y-6">
+      {/* 页面标题 */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">订单管理</h1>
+          <p className="text-muted-foreground">
+            管理系统中的所有订单和支付记录
+          </p>
+        </div>
+        <div className="flex items-center space-x-2">
           <Button onClick={() => setShowCreateDialog(true)}>
             <Plus className="mr-2 h-4 w-4" />
             创建订单
           </Button>
-        }
-      />
-      
-      <main className="flex-1 p-6">
-        <div className="space-y-6">
-          {/* 订单统计卡片 */}
-          <OrderStatsCards />
-
-          {/* 筛选器 */}
-          <OrderFilters onFiltersChange={handleFiltersChange} />
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ShoppingCart className="h-5 w-5" />
-                订单列表
-              </CardTitle>
-              <CardDescription>
-                共 {totalItems} 个订单
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <p className="text-muted-foreground">加载中...</p>
-                </div>
-              ) : (
-                <>
-                  {/* 数据表格（支持服务端分页） */}
-                  <DataTable 
-                    columns={createColumns({ 
-                      onOrderUpdated: handleOrderUpdated,
-                      onViewDetail: handleViewDetail
-                    })} 
-                    data={orders}
-                    searchPlaceholder="搜索订单..."
-                    searchColumn="id"
-                    columnNames={{
-                      id: 'ID',
-                      subscription_plan: '订阅计划',
-                      user: '用户',
-                      status: '状态',
-                      amount: '金额',
-                      payment_method: '支付方式',
-                      payment_gateway: '支付网关',
-                      order_type: '订单类型',
-                      created_at: '创建时间',
-                    }}
-                    manualPagination={true}
-                    pageCount={Math.ceil(totalItems / pageSize)}
-                    totalItems={totalItems}
-                    currentPage={currentPage}
-                    pageSize={pageSize}
-                    initialPagination={{ pageIndex: currentPage - 1, pageSize }}
-                    onPaginationChange={(updater) => {
-                      const newPagination = typeof updater === 'function' 
-                        ? updater({ pageIndex: currentPage - 1, pageSize })
-                        : updater
-                      const newPage = newPagination.pageIndex + 1
-                      const newPageSize = newPagination.pageSize
-                      
-                      if (newPageSize !== pageSize) {
-                        setPageSize(newPageSize)
-                        setCurrentPage(1)
-                        loadData(1, newPageSize)
-                      } else if (newPage !== currentPage) {
-                        loadData(newPage, pageSize)
-                      }
-                    }}
-                  />
-                </>
-              )}
-            </CardContent>
-          </Card>
         </div>
-      </main>
-      
-      {/* 对话框 */}
-      <CreateOrderDialog
-        open={showCreateDialog}
-        onOpenChange={setShowCreateDialog}
-        onOrderCreated={handleOrderUpdated}
-      />
-      
+      </div>
+
+      {/* 统计卡片 */}
+      <OrderStatsCards />
+
+      {/* 订单列表 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">订单列表</CardTitle>
+          <CardDescription>
+            共 {totalItems} 个订单
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DataTable
+            columns={columns}
+            data={orders}
+            searchKey="order_number"
+            searchPlaceholder="搜索订单号..."
+          />
+          
+          {/* 自定义分页控制 */}
+          {totalItems > pagination.pageSize && (
+            <div className="flex items-center justify-between px-2 py-4">
+              <div className="text-sm text-muted-foreground">
+                共 {totalItems} 个订单，当前显示第 {pagination.pageIndex + 1} 页
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePaginationChange({
+                    ...pagination,
+                    pageIndex: Math.max(0, pagination.pageIndex - 1)
+                  })}
+                  disabled={pagination.pageIndex <= 0}
+                >
+                  上一页
+                </Button>
+                <span className="px-3 py-1 text-sm">
+                  {pagination.pageIndex + 1} / {Math.ceil(totalItems / pagination.pageSize)}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePaginationChange({
+                    ...pagination,
+                    pageIndex: Math.min(Math.ceil(totalItems / pagination.pageSize) - 1, pagination.pageIndex + 1)
+                  })}
+                  disabled={pagination.pageIndex >= Math.ceil(totalItems / pagination.pageSize) - 1}
+                >
+                  下一页
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 订单详情对话框 */}
       <OrderDetailDialog
         open={showDetailDialog}
         onOpenChange={setShowDetailDialog}
         orderId={selectedOrderId}
         onOrderUpdated={handleOrderUpdated}
+      />
+
+      {/* 创建订单对话框 */}
+      <CreateOrderDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onOrderCreated={handleOrderUpdated}
       />
     </div>
   )
