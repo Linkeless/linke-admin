@@ -70,81 +70,68 @@ export function createColumns({ onConfigUpdated, onEdit }: ColumnsProps): Column
         const config = row.original
         return (
           <div className="flex items-center space-x-2">
-            {config.icon && (
-              <Image
-                src={config.icon}
-                alt={config.name}
-                width={24}
-                height={24}
-                className="h-6 w-6 rounded object-cover"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none'
-                }}
-              />
-            )}
             <div>
               <div className="font-medium">{config.name}</div>
-              {config.description && (
-                <div className="text-sm text-muted-foreground">
-                  {config.description}
-                </div>
-              )}
+              <div className="text-sm text-muted-foreground">
+                {config.method}
+              </div>
             </div>
           </div>
         )
       },
     },
     {
-      accessorKey: 'gateway',
-      header: () => <div className="text-center">支付网关</div>,
+      accessorKey: 'url',
+      header: () => <div className="text-center">API地址</div>,
       cell: ({ row }) => {
-        const gateway = row.getValue('gateway') as string
-        const gatewayLabels: Record<string, string> = {
-          alipay: '支付宝',
-          wechat: '微信支付',
-          stripe: 'Stripe',
-          paypal: 'PayPal',
-        }
+        const url = row.getValue('url') as string
         return (
-          <div className="text-center">
-            {gatewayLabels[gateway] || gateway}
+          <div className="text-center text-sm">
+            <span className="truncate max-w-[200px] inline-block" title={url}>
+              {url}
+            </span>
           </div>
         )
       },
     },
     {
-      accessorKey: 'method',
-      header: () => <div className="text-center">支付方式</div>,
+      accessorKey: 'pid',
+      header: () => <div className="text-center">商户ID</div>,
       cell: ({ row }) => {
-        const method = row.getValue('method') as string
-        const methodLabels: Record<string, string> = {
-          qr_code: '扫码支付',
-          app: 'APP支付',
-          web: '网页支付',
-          h5: 'H5支付',
-        }
+        const pid = row.getValue('pid') as string
         return (
-          <div className="text-center">
-            {methodLabels[method] || method}
+          <div className="text-center text-sm">
+            <span className="font-mono">{pid}</span>
           </div>
         )
       },
     },
     {
-      accessorKey: 'environment',
-      header: () => <div className="text-center">环境</div>,
+      accessorKey: 'min_amount',
+      header: () => <div className="text-center">金额范围</div>,
       cell: ({ row }) => {
-        const environment = row.getValue('environment') as string
-        const envLabels: Record<string, string> = {
-          production: '生产环境',
-          sandbox: '沙箱环境',
-          test: '测试环境',
-        }
+        const config = row.original
         return (
-          <div className="text-center">
-            <Badge variant={environment === 'production' ? 'default' : 'secondary'}>
-              {envLabels[environment] || environment}
-            </Badge>
+          <div className="text-center text-sm">
+            <div>{config.min_amount} - {config.max_amount}</div>
+            <div className="text-muted-foreground">{config.supported_currencies}</div>
+          </div>
+        )
+      },
+    },
+    {
+      accessorKey: 'fixed_fee',
+      header: () => <div className="text-center">费用设置</div>,
+      cell: ({ row }) => {
+        const config = row.original
+        const hasFixedFee = config.fixed_fee > 0
+        const hasPercentageFee = config.percentage_fee > 0
+        
+        return (
+          <div className="text-center text-sm">
+            {hasFixedFee && <div>固定: {config.fixed_fee}</div>}
+            {hasPercentageFee && <div>百分比: {config.percentage_fee}%</div>}
+            {!hasFixedFee && !hasPercentageFee && <div className="text-muted-foreground">无费用</div>}
           </div>
         )
       },
@@ -159,6 +146,18 @@ export function createColumns({ onConfigUpdated, onEdit }: ColumnsProps): Column
             <Badge variant={isEnabled ? 'default' : 'secondary'}>
               {isEnabled ? '启用' : '禁用'}
             </Badge>
+          </div>
+        )
+      },
+    },
+    {
+      accessorKey: 'sort_order',
+      header: () => <div className="text-center">排序</div>,
+      cell: ({ row }) => {
+        const sortOrder = row.getValue('sort_order') as number
+        return (
+          <div className="text-center text-sm">
+            {sortOrder}
           </div>
         )
       },

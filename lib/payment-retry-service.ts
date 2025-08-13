@@ -12,7 +12,6 @@ import {
   RetryStrategiesQueryParams,
   RetryRecordsQueryParams,
   ApiResponse,
-  PaginatedApiResponse,
   RetryStrategiesApiResponse,
   RetryRecordsApiResponse,
   RetryRecordDetail,

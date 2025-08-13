@@ -56,13 +56,12 @@ export function Pagination({
   }
 
   return (
-    <div className={`flex items-center justify-between ${className}`}>
-      {/* 显示信息 */}
+    <div className={`${className ? className + ' ' : ''}flex flex-col items-center justify-between gap-4 sm:flex-row`}>
+      {/* 左侧：信息与每页选择 */}
       <div className="flex items-center gap-4 text-sm text-muted-foreground">
         <div>
           显示 {startItem} - {endItem} 条，共 {totalItems} 条
         </div>
-        
         {/* 每页条数选择 */}
         <div className="flex items-center gap-2">
           <span>每页</span>
@@ -70,12 +69,13 @@ export function Pagination({
             value={itemsPerPage.toString()}
             onValueChange={(value) => onPageSizeChange(parseInt(value))}
           >
-            <SelectTrigger className="w-16 h-8">
+            <SelectTrigger className="h-8 w-[70px]">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent side="top">
               <SelectItem value="10">10</SelectItem>
               <SelectItem value="20">20</SelectItem>
+              <SelectItem value="30">30</SelectItem>
               <SelectItem value="50">50</SelectItem>
               <SelectItem value="100">100</SelectItem>
             </SelectContent>
@@ -84,8 +84,8 @@ export function Pagination({
         </div>
       </div>
 
-      {/* 分页控件 */}
-      <div className="flex items-center gap-1">
+      {/* 右侧：分页控件 */}
+      <div className="flex flex-wrap items-center gap-1">
         {/* 首页 */}
         <Button
           variant="outline"

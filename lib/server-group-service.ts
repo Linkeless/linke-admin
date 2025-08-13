@@ -19,15 +19,30 @@ export class ServerGroupService implements IServerGroupService {
     try {
       const queryParams = new URLSearchParams()
       
-      // 根据实际 API，使用 page 和 limit 参数
-      if (params?.page) queryParams.append('page', params.page.toString())
-      if (params?.limit) queryParams.append('limit', params.limit.toString())
+      // 统一分页：limit + offset，并兼容 page + limit
+      const limit = params?.limit ?? 10
+      const page = params?.page ?? 1
+      const offset = (page - 1) * limit
+
+      queryParams.append('limit', String(limit))
+      queryParams.append('offset', String(offset))
+      queryParams.append('page', String(page))
       
       const url = `/admin/server-groups?${queryParams.toString()}`
       
       console.log('发送服务器组列表请求:', url)
       const response: ServerGroupListResponse = await api.get(url)
       console.log('服务器组列表响应:', response)
+      
+      // 计算并补全分页信息
+      if (response?.data?.pagination) {
+        const p: any = response.data.pagination
+        const totalPages = Math.ceil((p.total || 0) / (p.limit || limit))
+        p.total_pages = totalPages
+        if (!p.page || p.page < 1) {
+          p.page = Math.floor((offset || 0) / (p.limit || limit)) + 1
+        }
+      }
       
       return response
     } catch (error) {

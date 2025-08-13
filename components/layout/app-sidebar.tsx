@@ -24,6 +24,8 @@ import {
   Workflow,
   UserCog,
   KeyRound,
+  Gift,
+  Target,
 } from "lucide-react"
 
 import {
@@ -70,8 +72,28 @@ const navGroups: NavGroupProps[] = [
     items: [
       {
         title: "邀请码管理",
-        url: "/auth/invite-codes",
+        url: "/referrals/invite-codes",
         icon: KeyRound,
+      },
+    ],
+  },
+  {
+    title: "推荐系统",
+    items: [
+      {
+        title: "推荐概览",
+        url: "/referrals",
+        icon: Gift,
+      },
+      {
+        title: "营销活动",
+        url: "/referrals/campaigns",
+        icon: Target,
+      },
+      {
+        title: "数据分析",
+        url: "/referrals/analytics",
+        icon: BarChart3,
       },
     ],
   },

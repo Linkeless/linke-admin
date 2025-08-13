@@ -11,7 +11,9 @@ import {
   Plus, 
   BarChart3, 
   Settings,
-  ArrowRight
+  ArrowRight,
+  AlertTriangle,
+  ShoppingCart
 } from 'lucide-react'
 
 export default function SubscriptionsPage() {
@@ -41,14 +43,36 @@ export default function SubscriptionsPage() {
       ]
     },
     {
+      title: '订单管理',
+      description: '管理订阅相关的订单，包括支付状态、订单详情等',
+      icon: ShoppingCart,
+      href: '/subscriptions/orders',
+      color: 'bg-indigo-50 text-indigo-600',
+      actions: [
+        { label: '查看订单', href: '/subscriptions/orders' },
+        { label: '订单分析', href: '/subscriptions/analytics/orders' }
+      ]
+    },
+    {
+      title: '订阅告警',
+      description: '监控订阅相关的告警信息，及时处理系统异常和用户问题',
+      icon: AlertTriangle,
+      href: '/subscriptions/alerts',
+      color: 'bg-red-50 text-red-600',
+      actions: [
+        { label: '查看告警', href: '/subscriptions/alerts' },
+        { label: '批量处理', href: '/subscriptions/alerts' }
+      ]
+    },
+    {
       title: '订阅分析',
-      description: '查看订阅数据统计和分析报告',
+      description: '查看订阅数据统计和分析报告，了解业务趋势',
       icon: BarChart3,
       href: '/subscriptions/analytics',
       color: 'bg-purple-50 text-purple-600',
       actions: [
         { label: '数据报告', href: '/subscriptions/analytics' },
-        { label: '收入统计', href: '/subscriptions/revenue' }
+        { label: '收入统计', href: '/subscriptions/analytics' }
       ]
     },
     {
@@ -69,7 +93,9 @@ export default function SubscriptionsPage() {
     { label: '活跃订阅', value: '1,234', change: '+12%', color: 'text-green-600' },
     { label: '总计划数', value: '28', change: '+2', color: 'text-blue-600' },
     { label: '本月收入', value: '¥45,678', change: '+8.5%', color: 'text-purple-600' },
-    { label: '续费失败', value: '23', change: '-5', color: 'text-red-600' }
+    { label: '待处理告警', value: '12', change: '-5', color: 'text-red-600' },
+    { label: '订单总数', value: '2,156', change: '+15%', color: 'text-indigo-600' },
+    { label: '支付成功率', value: '94.3%', change: '+1.2%', color: 'text-emerald-600' }
   ]
 
   return (
@@ -83,7 +109,7 @@ export default function SubscriptionsPage() {
       </div>
 
       {/* 快速统计 */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {quickStats.map((stat, index) => (
           <Card key={index}>
             <CardContent className="pt-6">
@@ -102,7 +128,7 @@ export default function SubscriptionsPage() {
       </div>
 
       {/* 主要功能模块 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {navigationCards.map((card, index) => {
           const IconComponent = card.icon
           return (
@@ -158,7 +184,7 @@ export default function SubscriptionsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <Button 
               variant="outline" 
               className="h-20 flex-col gap-2"
@@ -174,6 +200,22 @@ export default function SubscriptionsPage() {
             >
               <Users className="h-5 w-5" />
               <span>创建用户订阅</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="h-20 flex-col gap-2"
+              onClick={() => router.push('/subscriptions/orders')}
+            >
+              <ShoppingCart className="h-5 w-5" />
+              <span>查看订单</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="h-20 flex-col gap-2"
+              onClick={() => router.push('/subscriptions/alerts')}
+            >
+              <AlertTriangle className="h-5 w-5" />
+              <span>处理告警</span>
             </Button>
             <Button 
               variant="outline" 

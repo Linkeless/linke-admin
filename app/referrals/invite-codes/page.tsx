@@ -31,13 +31,6 @@ export default function InviteCodesPage() {
   const [editingInviteCode, setEditingInviteCode] = useState<InviteCodeResponse | null>(null)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
 
-  // 筛选状态
-  const [filters, setFilters] = useState({
-    status: 'all',
-    is_unlimited: 'all',
-    search: '',
-  })
-
   const loadData = useCallback(async () => {
     try {
       setLoading(true)
@@ -49,17 +42,6 @@ export default function InviteCodesPage() {
         sort_by: 'created_at',
         sort_order: 'desc',
       }
-
-      // 添加筛选条件
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value && value !== '' && value !== 'all') {
-          if (key === 'is_unlimited') {
-            queryParams[key] = value === 'true'
-          } else {
-            queryParams[key] = value
-          }
-        }
-      })
       
       const response = await inviteCodeService.getInviteCodes(queryParams)
       
@@ -80,7 +62,7 @@ export default function InviteCodesPage() {
     } finally {
       setLoading(false)
     }
-  }, [filters])
+  }, [])
 
   const handleInviteCodeCreated = useCallback(() => {
     // 重新加载邀请码列表
@@ -102,10 +84,6 @@ export default function InviteCodesPage() {
     setEditingInviteCode(null)
   }, [])
 
-  const handleFiltersChange = useCallback((newFilters: { status: string; is_unlimited: string }) => {
-    setFilters(newFilters)
-    loadData()
-  }, [loadData])
 
   useEffect(() => {
     loadData()

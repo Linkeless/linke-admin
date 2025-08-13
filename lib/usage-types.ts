@@ -311,6 +311,7 @@ export interface PaginationParams {
   limit: number;
   sort_by?: string;
   sort_order?: 'asc' | 'desc';
+  [key: string]: unknown;
 }
 
 export interface FilterParams {
@@ -319,6 +320,7 @@ export interface FilterParams {
   status?: UsageStatus | AlertStatus;
   date_range?: DateRange;
   search?: string;
+  [key: string]: unknown;
 }
 
 // API响应类型

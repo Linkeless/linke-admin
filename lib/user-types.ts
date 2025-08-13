@@ -1,7 +1,7 @@
 // ==================== 用户管理类型定义 ====================
 // 基于swagger文档定义的用户管理相关接口
 
-import { StandardResponse, StandardListResponse } from './types'
+import { StandardResponse } from './types'
 
 // 用户响应数据结构 - 基于swagger model.UserResponse
 export interface UserResponse {

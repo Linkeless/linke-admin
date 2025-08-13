@@ -3,12 +3,8 @@ import {
   CreateCouponRequest,
   UpdateCouponRequest,
   CouponQueryParams,
-  CouponStatsResponse,
-  CouponUsageResponse,
-  CouponUsageQueryParams,
   BatchCouponRequest,
   CouponsApiResponse,
-  CouponUsagesApiResponse,
   ApiResponse
 } from './coupon-types'
 import { getToken } from './api'

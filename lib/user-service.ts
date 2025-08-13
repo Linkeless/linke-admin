@@ -24,12 +24,15 @@ export class UserService implements IUserService {
     try {
       const queryParams = new URLSearchParams()
       
-      // 使用标准的page/limit参数
-      const page = params?.page || 1
-      const limit = params?.limit || 10
-      
-      queryParams.append('page', page.toString())
+      // 标准分页：limit + offset（与后端接口对齐），并兼容部分实现的 page + limit
+      const limit = params?.limit ?? 10
+      const page = params?.page ?? 1
+      const offset = (page - 1) * limit
+
       queryParams.append('limit', limit.toString())
+      queryParams.append('offset', offset.toString())
+      // 兼容：也传递 page，避免仅支持 page 的实现忽略 offset
+      queryParams.append('page', page.toString())
       
       if (params?.role) queryParams.append('role', params.role)
       if (params?.status) queryParams.append('status', params.status)
@@ -44,11 +47,15 @@ export class UserService implements IUserService {
       
       // 验证响应格式并计算总页数
       if (response.code === 0 && response.data && response.data.items) {
+        const pagination = response.data.pagination
+        // 兜底：如果后端未返回page，则根据offset/limit推导
+        if (!pagination.page || pagination.page < 1) {
+          const derivedPage = Math.floor((offset || 0) / (limit || 1)) + 1
+          pagination.page = derivedPage
+        }
         // 计算总页数
-        const totalPages = Math.ceil(response.data.pagination.total / response.data.pagination.limit)
-        
-        // 添加总页数到分页信息中
-        response.data.pagination.total_pages = totalPages
+        const totalPages = Math.ceil(pagination.total / pagination.limit)
+        pagination.total_pages = totalPages
         
         return response
       } else {
@@ -192,15 +199,13 @@ export class UserService implements IUserService {
   }
 
   // 批量删除用户
-  async batchDeleteUsers(userIds: number[]): Promise<BatchUserOperationResponse> {
-    const data: BatchUserOperationRequest = { ids: userIds }
+  async batchDeleteUsers(data: BatchUserOperationRequest): Promise<BatchUserOperationResponse> {
     const response: BatchUserOperationResponse = await api.post('/admin/users/batch/delete', data)
     return response
   }
 
   // 批量恢复用户
-  async batchRestoreUsers(userIds: number[]): Promise<BatchUserOperationResponse> {
-    const data: BatchUserOperationRequest = { ids: userIds }
+  async batchRestoreUsers(data: BatchUserOperationRequest): Promise<BatchUserOperationResponse> {
     const response: BatchUserOperationResponse = await api.post('/admin/users/batch/restore', data)
     return response
   }
@@ -229,7 +234,7 @@ export class UserService implements IUserService {
     if (user.github_id) {
       return `https://ui-avatars.com/api/?name=${encodeURIComponent(this.formatUserDisplayName(user))}&background=24292e&color=fff`
     }
-    if (user.tg_user_id) {
+    if (user.telegram_id) {
       return `https://ui-avatars.com/api/?name=${encodeURIComponent(this.formatUserDisplayName(user))}&background=0088cc&color=fff`
     }
     

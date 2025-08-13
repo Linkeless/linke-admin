@@ -29,7 +29,7 @@ export default function AuthCallbackPage() {
       console.log('OAuth callback params:', { code, state, provider })
 
       // 交换授权码获取token
-      const { token } = await handleOAuthCallback(code, state, provider)
+      const { token } = await handleOAuthCallback(code, state || undefined, provider || 'google')
       
       // 存储认证信息
       setTokens(token.access_token, token.refresh_token)

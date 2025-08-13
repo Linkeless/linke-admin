@@ -99,7 +99,7 @@ export function InviteCodeForm({
     await onSubmit(submitData)
   }
 
-  const handleFormAction = async (formData: FormData) => {
+  const handleFormAction = async () => {
     // Trigger form validation and submission using react-hook-form
     const isValid = await form.trigger()
     if (isValid) {

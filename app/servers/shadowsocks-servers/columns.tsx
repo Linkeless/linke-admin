@@ -97,20 +97,6 @@ export const createColumns = ({ onServerUpdated }: ColumnsProps): ColumnDef<Shad
     },
   },
   {
-    accessorKey: "sort",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="排序" />
-    ),
-    cell: ({ row }) => {
-      const server = row.original
-      return (
-        <Badge variant="outline" className="text-xs">
-          {server.sort}
-        </Badge>
-      )
-    },
-  },
-  {
     accessorKey: "parent_id",
     header: "父服务器",
     cell: ({ row }) => {

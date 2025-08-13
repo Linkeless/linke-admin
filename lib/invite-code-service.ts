@@ -4,11 +4,8 @@ import {
   UpdateInviteCodeRequest,
   InviteCodeQueryParams,
   InviteCodeStatsResponse,
-  InviteCodeUsageResponse,
-  InviteCodeUsageQueryParams,
   BatchInviteCodeRequest,
   InviteCodesApiResponse,
-  InviteCodeUsagesApiResponse,
   ApiResponse
 } from './invite-code-types'
 import { getToken } from './api'

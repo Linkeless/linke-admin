@@ -30,34 +30,30 @@ import {
   PaymentConfigResponse 
 } from '@/lib/payment-types'
 import { paymentService } from '@/lib/payment-service'
-import { ConfigEditor } from './config-editor'
+// import { ConfigEditor } from './config-editor'
 
-// 简化的表单验证模式
+// 表单验证模式 - 严格按照swagger dto.CreatePaymentConfigRequest定义
 const formSchema = z.object({
+  // 必填字段
   name: z.string().min(1, '请输入配置名称'),
-  gateway: z.string().min(1, '请选择支付网关'),
   method: z.string().min(1, '请选择支付方式'),
-  config: z.string().min(1, '请输入配置信息').refine((val) => {
-    try {
-      JSON.parse(val)
-      return true
-    } catch {
-      return false
-    }
-  }, { message: '配置参数必须是有效的JSON格式' }),
-  description: z.string().optional(),
-  environment: z.string().default('production'),
+  url: z.string().url('请输入合法的API地址'),
+  pid: z.string().min(1, '请输入商户/合作方ID'),
+  key: z.string().min(1, '请输入密钥'),
+  // 可选字段
   is_enabled: z.boolean().default(true),
-  icon: z.string().optional(),
-  min_amount: z.number().min(0).default(0.01),
-  max_amount: z.number().min(0).default(999999.99),
-  fee_type: z.string().default('percentage'),
-  fee_value: z.number().min(0).default(0),
+  min_amount: z.coerce.number().min(0).default(0.01),
+  max_amount: z.coerce.number().min(0).default(999999.99),
+  fixed_fee: z.coerce.number().min(0).default(0),
+  percentage_fee: z.coerce.number().min(0).default(0),
   supported_currencies: z.string().default('CNY'),
-  sort_order: z.number().min(0).default(0),
+  sort_order: z.coerce.number().min(0).default(1),
+  notify_url: z.string().optional().or(z.literal('')),
+  return_url: z.string().optional().or(z.literal('')),
 })
 
-type FormData = z.infer<typeof formSchema>
+// 使用输入类型，避免zod默认值导致的可选/必填类型不一致
+type FormData = z.input<typeof formSchema>
 
 interface PaymentConfigFormProps {
   initialData?: PaymentConfigResponse
@@ -78,19 +74,19 @@ export function PaymentConfigForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
-      gateway: '',
       method: '',
-      config: '',
-      description: '',
-      environment: 'production',
+      url: '',
+      pid: '',
+      key: '',
       is_enabled: true,
-      icon: '',
       min_amount: 0.01,
       max_amount: 999999.99,
-      fee_type: 'percentage',
-      fee_value: 0,
+      fixed_fee: 0,
+      percentage_fee: 0,
       supported_currencies: 'CNY',
-      sort_order: 0,
+      sort_order: 1,
+      notify_url: '',
+      return_url: '',
     },
   })
 
@@ -99,19 +95,19 @@ export function PaymentConfigForm({
     if (initialData) {
       form.reset({
         name: initialData.name,
-        gateway: initialData.gateway,
-        method: initialData.method || '',
-        config: initialData.config || '',
-        description: initialData.description || '',
-        environment: initialData.environment || 'production',
+        method: initialData.method,
+        url: initialData.url,
+        pid: initialData.pid,
+        key: initialData.key,
         is_enabled: initialData.is_enabled,
-        icon: initialData.icon || '',
         min_amount: initialData.min_amount,
         max_amount: initialData.max_amount,
-        fee_type: initialData.percentage_fee > 0 ? 'percentage' : 'fixed',
-        fee_value: initialData.percentage_fee > 0 ? initialData.percentage_fee : initialData.fixed_fee,
+        fixed_fee: initialData.fixed_fee,
+        percentage_fee: initialData.percentage_fee,
         supported_currencies: initialData.supported_currencies,
         sort_order: initialData.sort_order,
+        notify_url: initialData.notify_url ?? '',
+        return_url: initialData.return_url ?? '',
       })
     }
   }, [initialData, form])
@@ -119,7 +115,16 @@ export function PaymentConfigForm({
   const handleSubmit = async (data: FormData) => {
     try {
       setSubmitting(true)
-      await onSubmit(data)
+      // 强化数值类型，确保满足接口类型
+      const payload = {
+        ...data,
+        min_amount: Number(data.min_amount ?? 0),
+        max_amount: Number(data.max_amount ?? 0),
+        fixed_fee: Number(data.fixed_fee ?? 0),
+        percentage_fee: Number(data.percentage_fee ?? 0),
+        sort_order: Number(data.sort_order ?? 0),
+      }
+      await onSubmit(payload as unknown as CreatePaymentConfigRequest)
     } catch (error) {
       console.error('提交表单失败:', error)
     } finally {
@@ -127,7 +132,7 @@ export function PaymentConfigForm({
     }
   }
 
-  const handleFormAction = async (formData: FormData) => {
+  const handleFormAction = async () => {
     // Trigger form validation and submission using react-hook-form
     const isValid = await form.trigger()
     if (isValid) {
@@ -138,7 +143,7 @@ export function PaymentConfigForm({
 
   return (
     <Form {...form}>
-      <form action={handleFormAction} className="space-y-4">
+      <form action={async () => { await handleFormAction() }} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -149,31 +154,6 @@ export function PaymentConfigForm({
                 <FormControl>
                   <Input placeholder="支付宝扫码支付" {...field} />
                 </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="gateway"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>支付网关</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="选择支付网关" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {paymentService.getPaymentGateways().map((gateway) => (
-                      <SelectItem key={gateway.value} value={gateway.value}>
-                        {gateway.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
                 <FormMessage />
               </FormItem>
             )}
@@ -206,20 +186,64 @@ export function PaymentConfigForm({
 
           <FormField
             control={form.control}
-            name="environment"
+            name="url"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>运行环境</FormLabel>
+                <FormLabel>API地址</FormLabel>
+                <FormControl>
+                  <Input placeholder="https://api.example.com" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="pid"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>商户/合作方ID</FormLabel>
+                <FormControl>
+                  <Input placeholder="partner_id" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="key"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>密钥</FormLabel>
+                <FormControl>
+                  <Input placeholder="secret_key" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="supported_currencies"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>支持的货币</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="选择货币" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="production">生产环境</SelectItem>
-                    <SelectItem value="sandbox">沙箱环境</SelectItem>
-                    <SelectItem value="test">测试环境</SelectItem>
+                    {paymentService.getSupportedCurrencies().map((currency) => (
+                      <SelectItem key={currency.value} value={currency.value}>
+                        {currency.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -228,39 +252,43 @@ export function PaymentConfigForm({
           />
         </div>
 
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>描述</FormLabel>
-              <FormControl>
-                <Textarea placeholder="配置描述..." {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="notify_url"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>通知回调URL (可选)</FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="https://example.com/webhook" 
+                    {...field}
+                    value={field.value ?? ''}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="config"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>配置参数</FormLabel>
-              <FormControl>
-                <ConfigEditor
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder='{"api_url": "https://api.example.com", "api_key": "your_key"}'
-                  disabled={loading}
-                />
-              </FormControl>
-              <FormDescription>JSON格式的支付网关配置参数</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="return_url"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>返回URL (可选)</FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="https://example.com/return" 
+                    {...field}
+                    value={field.value ?? ''}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
@@ -273,7 +301,7 @@ export function PaymentConfigForm({
                   <Input 
                     type="number" 
                     step="0.01" 
-                    {...field} 
+                    value={Number(field.value ?? 0)}
                     onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                   />
                 </FormControl>
@@ -292,7 +320,7 @@ export function PaymentConfigForm({
                   <Input 
                     type="number" 
                     step="0.01" 
-                    {...field} 
+                    value={Number(field.value ?? 0)}
                     onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                   />
                 </FormControl>
@@ -301,6 +329,64 @@ export function PaymentConfigForm({
             )}
           />
         </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="fixed_fee"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>固定费用</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number" 
+                    step="0.01" 
+                    value={Number(field.value ?? 0)}
+                    onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="percentage_fee"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>百分比费用 (%)</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number" 
+                    step="0.1" 
+                    value={Number(field.value ?? 0)}
+                    onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <FormField
+          control={form.control}
+          name="sort_order"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>排序顺序</FormLabel>
+              <FormControl>
+                <Input 
+                  type="number" 
+                  value={Number(field.value ?? 1)}
+                  onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}

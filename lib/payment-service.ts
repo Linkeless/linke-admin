@@ -8,25 +8,17 @@ import {
 } from './payment-types'
 import { api } from './api'
 
+/**
+ * 支付配置服务 - 严格按照swagger API定义实现
+ * API文档: /admin/payment/configs
+ */
 class PaymentService {
-  // 使用统一的API客户端
+  // 使用统一的API客户端 (lib/api.ts)
 
   // 获取支付配置列表
   async getPaymentConfigs(params?: PaymentConfigsQueryParams): Promise<PaymentConfigsApiResponse> {
-    const searchParams = new URLSearchParams()
-    
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          searchParams.append(key, String(value))
-        }
-      })
-    }
-
-    const queryString = searchParams.toString()
-    const endpoint = `/admin/payment/configs${queryString ? `?${queryString}` : ''}`
-    
-    return api.get<PaymentConfigsApiResponse>(endpoint)
+    // 严格按swagger：method, is_enabled, environment, limit, offset
+    return api.get<PaymentConfigsApiResponse>('/admin/payment/configs', params)
   }
 
   // 创建支付配置
@@ -74,40 +66,41 @@ class PaymentService {
     return this.updatePaymentConfig(id, { is_enabled: enabled })
   }
 
-  // 获取支付网关选项 (静态数据，可以后续从API获取)
-  getPaymentGateways(): { value: string; label: string }[] {
-    return [
-      { value: 'epay', label: '易支付' },
-      { value: 'stripe', label: 'Stripe' },
-      { value: 'paypal', label: 'PayPal' },
-      { value: 'wechat', label: '微信支付' },
-    ]
+  // 获取支付方法配置模式 - 从API获取
+  async getPaymentMethodSchemas(): Promise<ApiResponse<unknown>> {
+    return api.get<ApiResponse<unknown>>('/admin/payment/schemas')
   }
 
-  // 获取支付方式选项 (静态数据，可以后续从API获取)
+  // 获取特定支付方法的配置模式
+  async getPaymentMethodSchema(method: string): Promise<ApiResponse<unknown>> {
+    return api.get<ApiResponse<unknown>>(`/admin/payment/schemas/${method}`)
+  }
+
+  // 获取支付方式选项 - 基于swagger定义的method字段
   getPaymentMethods(): { value: string; label: string }[] {
     return [
+      { value: 'epay', label: '易支付 (EPay)' },
+      { value: 'crypto_btc', label: '加密货币 Bitcoin' },
+      { value: 'crypto_eth', label: '加密货币 Ethereum' },
+      { value: 'crypto_usdt', label: '加密货币 USDT' },
+      { value: 'stripe', label: 'Stripe' },
+      { value: 'paypal', label: 'PayPal' },
       { value: 'alipay', label: '支付宝' },
       { value: 'wechat_pay', label: '微信支付' },
-      { value: 'credit_card', label: '信用卡' },
-      { value: 'bank_transfer', label: '银行转账' },
     ]
   }
 
-  // 获取环境选项
-  getEnvironments(): { value: string; label: string }[] {
-    return [
-      { value: 'production', label: '生产环境' },
-      { value: 'sandbox', label: '沙箱环境' },
-      { value: 'development', label: '开发环境' },
-    ]
-  }
 
-  // 获取费用类型选项
-  getFeeTypes(): { value: string; label: string }[] {
+  // 获取支持的货币列表 (基于swagger示例 "CNY")
+  getSupportedCurrencies(): { value: string; label: string }[] {
     return [
-      { value: 'percentage', label: '百分比' },
-      { value: 'fixed', label: '固定金额' },
+      { value: 'CNY', label: '人民币 (CNY)' },
+      { value: 'USD', label: '美元 (USD)' },
+      { value: 'EUR', label: '欧元 (EUR)' },
+      { value: 'JPY', label: '日元 (JPY)' },
+      { value: 'BTC', label: '比特币 (BTC)' },
+      { value: 'ETH', label: '以太币 (ETH)' },
+      { value: 'USDT', label: 'USDT' },
     ]
   }
 }

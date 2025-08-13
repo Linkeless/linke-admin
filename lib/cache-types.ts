@@ -254,32 +254,118 @@ export interface CacheMetricsQuery {
   timerange?: TimeRange;
 }
 
-// 导出所有类型
-export type {
-  StandardResponse,
-  PaginatedResponse,
-  CacheMetrics,
-  CacheMetricsReport,
-  CachePrefixMetricSummary,
-  CacheStats,
-  CachePerformanceMetrics,
-  CacheHealthStatus,
-  CacheMultiLevelMetrics,
-  CacheMemoryMetrics,
-  CacheWarmingMetrics,
-  CacheDashboardResponse,
-  CacheHealthResponse,
-  CacheInvalidationResponse,
-  CacheMetricsResponse,
-  CachePerformanceResponse,
-  CacheWarmingResponse,
-  CacheBenchmarkResponse,
-  CacheFlushRequest,
-  CachePatternDeleteRequest,
-  CacheWarmingTriggerRequest,
-  CacheOperationResult,
-  CacheActionRequest,
-  CacheMetricsQuery,
-  TimeRange,
-  QueryParams
-};
+// ===== 补充缺失的类型定义 =====
+
+// 类型别名 - 兼容现有导入
+export type ApiResponse<T = unknown> = StandardResponse<T>;
+export type MetricsHistory = CacheMetricsHistory;
+export type CachePerformance = CachePerformanceMetrics;
+export type CacheHealth = CacheHealthStatus;
+
+// 缓存操作请求 (兼容性别名)
+export type CacheOperationRequest = CacheActionRequest;
+export type CacheOperationResponse = CacheOperationResult;
+
+// 缓存键相关类型
+export interface CacheKey {
+  key: string;
+  value?: unknown;
+  ttl?: number;
+  created_at?: number;
+  accessed_at?: number;
+  size_bytes?: number;
+  type?: string;
+}
+
+export interface CacheKeysResponse {
+  keys: CacheKey[];
+  total_count: number;
+  scan_cursor?: string;
+}
+
+export interface CacheKeysQuery {
+  pattern?: string;
+  prefix?: string;
+  limit?: number;
+  cursor?: string;
+  with_values?: boolean;
+  with_metadata?: boolean;
+}
+
+// 缓存告警相关类型
+export interface CacheAlert {
+  id: string;
+  type: 'performance' | 'availability' | 'capacity' | 'error_rate';
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  title: string;
+  message: string;
+  metric_name: string;
+  threshold: number;
+  current_value: number;
+  triggered_at: number;
+  resolved_at?: number;
+  status: 'active' | 'resolved' | 'muted';
+  conditions: AlertCondition[];
+}
+
+export interface AlertCondition {
+  metric: string;
+  operator: 'gt' | 'lt' | 'eq' | 'gte' | 'lte';
+  threshold: number;
+  duration_minutes: number;
+}
+
+export interface CreateAlertRequest {
+  type: CacheAlert['type'];
+  title: string;
+  message?: string;
+  metric_name: string;
+  threshold: number;
+  severity: CacheAlert['severity'];
+  conditions: AlertCondition[];
+  enabled?: boolean;
+}
+
+// 缓存维护相关类型
+export interface CacheMaintenanceRequest {
+  operation: 'cleanup' | 'optimize' | 'rebuild_index' | 'vacuum';
+  schedule?: {
+    start_time?: number;
+    max_duration_minutes?: number;
+  };
+  options?: {
+    force?: boolean;
+    dry_run?: boolean;
+    preserve_hot_keys?: boolean;
+  };
+}
+
+export interface CacheMaintenanceResponse {
+  operation: string;
+  status: 'scheduled' | 'running' | 'completed' | 'failed';
+  started_at?: number;
+  completed_at?: number;
+  duration_ms?: number;
+  affected_keys: number;
+  freed_memory_bytes: number;
+  errors: string[];
+  details?: Record<string, unknown>;
+}
+
+// 实时监控数据类型
+export interface RealtimeMonitorData {
+  timestamp: number;
+  metrics: CacheMetrics;
+  performance: CachePerformanceMetrics;
+  health: {
+    overall_status: string;
+    component_status: Record<string, string>;
+  };
+  alerts: CacheAlert[];
+  active_operations: {
+    operation: string;
+    progress: number;
+    started_at: number;
+  }[];
+}
+

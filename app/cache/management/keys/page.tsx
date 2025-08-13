@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Search, Key, Database, Clock, BarChart3, Trash2, Edit, Plus } from 'lucide-react';
+import { Key, Database, Clock, BarChart3, Plus } from 'lucide-react';
 import { KeysManagement } from '../components';
 import { useCacheKeys } from '@/hooks/use-cache-operations';
 import { formatBytes, formatDuration } from '@/lib/cache-service';
@@ -25,7 +25,6 @@ export default function KeysDetailPage() {
   const { keys } = useCacheKeys();
   const [selectedKey, setSelectedKey] = useState<CacheKey | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newKeyForm, setNewKeyForm] = useState({
     key: '',
@@ -33,16 +32,6 @@ export default function KeysDetailPage() {
     value: '',
     ttl: -1,
   });
-
-  const handleViewKey = (key: CacheKey) => {
-    setSelectedKey(key);
-    setDetailDialogOpen(true);
-  };
-
-  const handleEditKey = (key: CacheKey) => {
-    setSelectedKey(key);
-    setEditDialogOpen(true);
-  };
 
   const handleCreateKey = async () => {
     // 这里调用创建键的API
@@ -456,10 +445,6 @@ export default function KeysDetailPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDetailDialogOpen(false)}>
               关闭
-            </Button>
-            <Button onClick={() => selectedKey && handleEditKey(selectedKey)}>
-              <Edit className="h-4 w-4 mr-2" />
-              编辑
             </Button>
           </DialogFooter>
         </DialogContent>

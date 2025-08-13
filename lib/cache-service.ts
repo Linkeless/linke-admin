@@ -15,7 +15,6 @@ import type {
   CreateAlertRequest,
   CacheOperationRequest,
   CacheOperationResponse,
-  CacheKey,
   CacheKeysResponse,
   CacheKeysQuery,
   CacheMaintenanceRequest,
@@ -362,7 +361,7 @@ export class CacheService {
   }> {
     try {
       const request: CacheOperationRequest = {
-        operation: 'clear' as CacheOperation,
+        operation: 'clear',
         target: 'pattern',
         pattern,
         confirm: true,

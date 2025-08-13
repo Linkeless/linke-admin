@@ -86,6 +86,9 @@ export interface ShadowsocksServerSearchParams {
   show?: number        // 按可见性过滤（0或1）
   // 为了兼容现有代码，保留这些字段
   offset?: number      // 偏移量（将转换为page）
+  name?: string        // 按名称子串匹配
+  sort_by?: 'sort' | 'created_at' | 'updated_at' | 'name' | 'rate'
+  sort_order?: 'asc' | 'desc'
 }
 
 // 分页信息

@@ -18,6 +18,7 @@ import { DataTable } from "@/components/ui/data-table"
 import { 
   CreateServerGroupDialog
 } from "@/components/servers/server-groups"
+import { Pagination } from "@/components/subscriptions"
 
 export default function ServerGroupsPage() {
   const [serverGroups, setServerGroups] = useState<ServerGroupResponse[]>([])
@@ -100,6 +101,28 @@ export default function ServerGroupsPage() {
                       data={serverGroups}
                       searchKey="name"
                       searchPlaceholder="搜索服务器组名称..."
+                      hideInternalPagination
+                    />
+
+                    {/* 分页（服务端分页）*/}
+                    <Pagination
+                      currentPage={currentPage}
+                      totalItems={totalItems}
+                      itemsPerPage={pageSize}
+                      onPageChange={(page) => {
+                        if (page !== currentPage) {
+                          setCurrentPage(page)
+                          loadData(page, pageSize)
+                        }
+                      }}
+                      onPageSizeChange={(size) => {
+                        if (size !== pageSize) {
+                          setPageSize(size)
+                          setCurrentPage(1)
+                          // useEffect 会触发 loadData(1, size)
+                        }
+                      }}
+                      className="pt-4"
                     />
                   </>
                 )}

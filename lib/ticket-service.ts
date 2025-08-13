@@ -3,7 +3,6 @@ import {
   CreateTicketRequest,
   CreateTicketMessageRequest,
   UpdateTicketRequest,
-  UpdateTicketMessageRequest,
   AssignTicketRequest,
   ResolveTicketRequest,
   EscalateTicketRequest,

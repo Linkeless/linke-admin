@@ -35,19 +35,14 @@ export default function PaymentConfigPage() {
     try {
       setLoading(true)
       
-      // 将页码转换为offset
-      const offset = (page - 1) * limit
-      
       const response = await paymentService.getPaymentConfigs({
-        offset: offset,
-        limit: limit
+        limit,
+        offset: (page - 1) * limit,
       })
       
       console.log('Payment Config API Response:', response) // 调试信息
       
       if (response.code === 0) {
-        // 实际API返回的是 {code, message, data: [...], total, limit, offset}
-        // data 可能为 null（空数据情况），需要正确处理
         setPaymentConfigs(response.data || [])
         setTotalItems(response.total || 0)
         setCurrentPage(page)

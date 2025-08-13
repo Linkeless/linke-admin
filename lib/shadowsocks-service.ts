@@ -21,25 +21,33 @@ export class ShadowsocksServerService implements IShadowsocksServerService {
   // 获取服务器列表（严格按照后端API）
   async getServers(params?: ShadowsocksServerSearchParams): Promise<ShadowsocksServerListResponse> {
     try {
-      const queryParams = new URLSearchParams()
-      
-      // 根据swagger文档API参数
-      if (params?.page) queryParams.append('page', params.page.toString())
-      if (params?.limit) queryParams.append('limit', params.limit.toString())
-      if (params?.group_id) queryParams.append('group_id', params.group_id.toString())
-      if (params?.show !== undefined) queryParams.append('show', params.show.toString())
-      
-      // 兼容旧的offset参数，转换为page
-      if (params?.offset && !params?.page) {
-        const page = Math.floor(params.offset / (params.limit || 10)) + 1
-        queryParams.append('page', page.toString())
+      // 严格按 swagger: page, limit, group_id, show, name
+      const limit = params?.limit ?? 10
+      const page = params?.page ?? 1
+      const requestParams: Record<string, string | number> = {
+        page,
+        limit,
       }
-      
-      const url = `/admin/servers?${queryParams.toString()}`
-      
-      console.log('发送服务器列表请求:', url)
-      const response: ShadowsocksServerListResponse = await api.get(url)
+      if (params?.group_id !== undefined) requestParams.group_id = params.group_id
+      if (params?.show !== undefined) requestParams.show = params.show
+      if (params?.name) requestParams.name = params.name
+      if (params?.sort_by) requestParams.sort_by = params.sort_by
+      if (params?.sort_order) requestParams.sort_order = params.sort_order
+
+      console.log('发送服务器列表请求: /admin/servers', requestParams)
+      const response: ShadowsocksServerListResponse = await api.get('/admin/servers', requestParams)
       console.log('服务器列表响应:', response)
+      
+      // 计算并补全分页信息
+      if (response?.data?.pagination) {
+        const p: any = response.data.pagination
+        const totalPages = Math.ceil((p.total || 0) / (p.limit || limit))
+        p.total_pages = totalPages
+        if (!p.page || p.page < 1) {
+          // 按 swagger 只返回 page/limit/total 时，保持 page 为传入值
+          p.page = page
+        }
+      }
       
       return response
     } catch (error) {

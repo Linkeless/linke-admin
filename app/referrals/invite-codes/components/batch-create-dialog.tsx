@@ -45,7 +45,7 @@ const formSchema = z.object({
     .min(1, '最大使用次数必须大于0')
     .max(10000, '最大使用次数不能超过10000')
     .optional(),
-  is_unlimited: z.boolean().default(false),
+  is_unlimited: z.boolean(),
   valid_from: z.date().optional(),
   valid_until: z.date().optional(),
   description: z.string()
@@ -61,7 +61,15 @@ const formSchema = z.object({
   path: ['valid_until'],
 })
 
-type FormData = z.infer<typeof formSchema>
+type FormData = {
+  name_prefix: string;
+  count: number;
+  max_uses?: number;
+  is_unlimited: boolean;
+  valid_from?: Date;
+  valid_until?: Date;
+  description?: string;
+}
 
 interface BatchCreateDialogProps {
   onInviteCodesCreated?: () => void
@@ -119,13 +127,8 @@ export function BatchCreateDialog({ onInviteCodesCreated }: BatchCreateDialogPro
     }
   }
 
-  const handleFormAction = async (formData: FormData) => {
-    // Trigger form validation and submission using react-hook-form
-    const isValid = await form.trigger()
-    if (isValid) {
-      const values = form.getValues()
-      await handleSubmit(values)
-    }
+  const handleFormSubmit = async (data: FormData) => {
+    await handleSubmit(data)
   }
 
   return (
@@ -145,7 +148,7 @@ export function BatchCreateDialog({ onInviteCodesCreated }: BatchCreateDialogPro
         </DialogHeader>
         
         <Form {...form}>
-          <form action={handleFormAction} className="space-y-6">
+          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}

@@ -21,6 +21,7 @@ import {
   CreateUserDialog, 
   BatchActionsToolbar
 } from "@/components/users"
+import { Pagination } from "@/components/subscriptions"
 
 // 移除未使用的getData函数，现在使用带分页的loadData函数
 
@@ -49,7 +50,7 @@ export default function UsersPage() {
       if (response.code === 0 && response.data) {
         setUsers(response.data.items)
         setTotalItems(response.data.pagination.total)
-        setTotalPages(response.data.pagination.total_pages || 0)
+        setTotalPages(response.data.pagination.total_pages || Math.ceil(response.data.pagination.total / response.data.pagination.limit) || 0)
         setCurrentPage(response.data.pagination.page)
       }
     } catch (error) {
@@ -137,6 +138,26 @@ export default function UsersPage() {
                       searchKey="email"
                       searchPlaceholder="筛选邮箱..."
                       onSelectionChange={handleSelectionChange}
+                       hideInternalPagination
+                    />
+
+                    {/* 分页控件（服务端分页）*/}
+                    <Pagination
+                      currentPage={currentPage}
+                      totalItems={totalItems}
+                      itemsPerPage={pageSize}
+                      onPageChange={(page) => {
+                        if (page !== currentPage) {
+                          loadData(page, pageSize)
+                        }
+                      }}
+                      onPageSizeChange={(size) => {
+                        if (size !== pageSize) {
+                          setPageSize(size)
+                          setCurrentPage(1)
+                        }
+                      }}
+                      className="py-4"
                     />
                   </>
                 )}
