@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from "react"
+import { useState, useCallback } from "react"
 import {
   Card,
   CardContent,
@@ -13,7 +13,6 @@ import { Trash2 } from "lucide-react"
 import Link from "next/link"
 import { PageHeader } from "@/components/layout/page-header"
 
-import { userService } from "@/lib/user-service"
 import { UserResponse } from "@/lib/user-types"
 import { createColumns } from "./columns"
 import { DataTable } from "@/components/ui/data-table"
@@ -22,60 +21,47 @@ import {
   BatchActionsToolbar
 } from "@/components/users"
 import { Pagination } from "@/components/subscriptions"
-
-// 移除未使用的getData函数，现在使用带分页的loadData函数
+import { useUsers } from "@/hooks/queries/use-users"
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<UserResponse[]>([])
-  const [loading, setLoading] = useState(true)
   const [selectedUsers, setSelectedUsers] = useState<UserResponse[]>([])
   
   // 分页状态
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
-  const [totalItems, setTotalItems] = useState(0)
-  const [totalPages, setTotalPages] = useState(0)
 
-  const loadData = useCallback(async (page: number = 1, limit: number = 10) => {
-    try {
-      setLoading(true)
-      setSelectedUsers([]) // 清空选择
-      
-      console.log('加载用户列表，页码:', page, '每页:', limit)
-      const response = await userService.getUsers({
-        page,
-        limit
-      })
-      
-      if (response.code === 0 && response.data) {
-        setUsers(response.data.items)
-        setTotalItems(response.data.pagination.total)
-        setTotalPages(response.data.pagination.total_pages || Math.ceil(response.data.pagination.total / response.data.pagination.limit) || 0)
-        setCurrentPage(response.data.pagination.page)
-      }
-    } catch (error) {
-      console.error('加载用户列表失败:', error)
-      // 可以添加错误提示
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  // 使用 React Query 获取用户数据
+  const { 
+    data: usersResponse, 
+    isLoading, 
+    error, 
+    refetch 
+  } = useUsers({
+    page: currentPage,
+    limit: pageSize
+  })
+
+  // 从响应中提取数据
+  const users = usersResponse?.data?.items || []
+  const totalItems = usersResponse?.data?.pagination?.total || 0
+  const totalPages = usersResponse?.data?.pagination?.total_pages || 
+    Math.ceil(totalItems / pageSize) || 0
 
   const handleUserCreated = useCallback(() => {
     // 重新加载用户列表
-    loadData()
-  }, [loadData])
+    refetch()
+  }, [refetch])
 
   const handleUserUpdated = useCallback(() => {
     // 重新加载用户列表
-    loadData()
-  }, [loadData])
+    refetch()
+  }, [refetch])
 
   const handleBatchComplete = useCallback(() => {
     // 批量操作完成后重新加载数据
-    loadData()
+    refetch()
     setSelectedUsers([]) // 清空选择
-  }, [loadData])
+  }, [refetch])
 
   const handleClearSelection = useCallback(() => {
     setSelectedUsers([])
@@ -85,11 +71,20 @@ export default function UsersPage() {
     setSelectedUsers(users)
   }, [])
 
+  const handlePageChange = useCallback((page: number) => {
+    if (page !== currentPage) {
+      setCurrentPage(page)
+      setSelectedUsers([]) // 清空选择
+    }
+  }, [currentPage])
 
-
-  useEffect(() => {
-    loadData(1, pageSize)
-  }, [loadData, pageSize])
+  const handlePageSizeChange = useCallback((size: number) => {
+    if (size !== pageSize) {
+      setPageSize(size)
+      setCurrentPage(1)
+      setSelectedUsers([]) // 清空选择
+    }
+  }, [pageSize])
 
   return (
     <div className="flex flex-col">
@@ -116,9 +111,18 @@ export default function UsersPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {loading ? (
+                {isLoading ? (
                   <div className="flex items-center justify-center py-8">
                     <p className="text-muted-foreground">加载中...</p>
+                  </div>
+                ) : error ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="text-center">
+                      <p className="text-destructive">加载用户列表失败</p>
+                      <Button variant="outline" onClick={() => refetch()} className="mt-2">
+                        重试
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   <>
@@ -146,17 +150,8 @@ export default function UsersPage() {
                       currentPage={currentPage}
                       totalItems={totalItems}
                       itemsPerPage={pageSize}
-                      onPageChange={(page) => {
-                        if (page !== currentPage) {
-                          loadData(page, pageSize)
-                        }
-                      }}
-                      onPageSizeChange={(size) => {
-                        if (size !== pageSize) {
-                          setPageSize(size)
-                          setCurrentPage(1)
-                        }
-                      }}
+                      onPageChange={handlePageChange}
+                      onPageSizeChange={handlePageSizeChange}
                       className="py-4"
                     />
                   </>

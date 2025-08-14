@@ -14,41 +14,24 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { MoreHorizontal, Edit, Trash2, Power, PowerOff, ChevronsUpDown } from 'lucide-react'
 import { PaymentConfigResponse } from '@/lib/payment-types'
-import { paymentService } from '@/lib/payment-service'
-import { toast } from 'sonner'
 
 interface ColumnsProps {
-  onConfigUpdated?: () => void
   onEdit?: (config: PaymentConfigResponse) => void
+  onDelete?: (config: PaymentConfigResponse) => void
+  onToggleStatus?: (config: PaymentConfigResponse, enabled: boolean) => void
 }
 
-export function createColumns({ onConfigUpdated, onEdit }: ColumnsProps): ColumnDef<PaymentConfigResponse>[] {
+export function createColumns({ onEdit, onDelete, onToggleStatus }: ColumnsProps): ColumnDef<PaymentConfigResponse>[] {
   const handleDelete = async (config: PaymentConfigResponse) => {
     if (!confirm(`确定要删除支付配置"${config.name}"吗？此操作不可撤销。`)) {
       return
     }
-
-    try {
-      await paymentService.deletePaymentConfig(config.id)
-      toast.success(`支付配置"${config.name}"已删除`)
-      onConfigUpdated?.()
-    } catch (error) {
-      console.error('删除配置失败:', error)
-      toast.error('删除支付配置时发生错误，请稍后重试')
-    }
+    onDelete?.(config)
   }
 
   const handleToggleStatus = async (config: PaymentConfigResponse) => {
-    try {
-      const newStatus = !config.is_enabled
-      await paymentService.toggleConfigStatus(config.id, newStatus)
-      
-      toast.success(`支付配置"${config.name}"已${newStatus ? '启用' : '禁用'}`)
-      onConfigUpdated?.()
-    } catch (error) {
-      console.error('更新状态失败:', error)
-      toast.error('更新支付配置状态时发生错误，请稍后重试')
-    }
+    const newStatus = !config.is_enabled
+    onToggleStatus?.(config, newStatus)
   }
 
   return [

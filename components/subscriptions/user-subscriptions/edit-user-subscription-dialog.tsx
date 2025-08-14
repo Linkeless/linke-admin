@@ -31,6 +31,7 @@ import {
   UpdateSubscriptionRequest,
   UserSubscription,
 } from "@/lib/subscription-types"
+import { useUpdateUserSubscription } from "@/hooks/mutations/use-subscription-mutations"
 
 const formSchema = z.object({
   end_date: z.string().optional(),
@@ -48,7 +49,16 @@ interface EditUserSubscriptionDialogProps {
 
 export function EditUserSubscriptionDialog({ subscription, onSubscriptionUpdated }: EditUserSubscriptionDialogProps) {
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
+  
+  const updateSubscriptionMutation = useUpdateUserSubscription({
+    onSuccess: () => {
+      setOpen(false)
+      onSubscriptionUpdated()
+    },
+    onError: (error) => {
+      console.error('更新用户订阅失败:', error)
+    }
+  })
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -61,33 +71,15 @@ export function EditUserSubscriptionDialog({ subscription, onSubscriptionUpdated
   })
 
   const handleSubmit = async (data: FormData) => {
-    try {
-      setLoading(true)
-      
-      const updateData: UpdateSubscriptionRequest = {
-        end_date: data.end_date || undefined,
-        auto_renew: data.auto_renew,
-        cancel_at_period_end: data.cancel_at_period_end,
-        notes: data.notes || undefined,
-      }
-
-      console.log('更新用户订阅数据:', updateData)
-      const response = await subscriptionService.updateUserSubscription(subscription.id, updateData)
-      
-      if (response.code === 0) {
-        console.log('用户订阅更新成功:', response.data)
-        setOpen(false)
-        onSubscriptionUpdated()
-      } else {
-        throw new Error(response.message || '更新失败')
-      }
-    } catch (error: unknown) {
-      console.error('更新用户订阅失败:', error)
-      const errorMessage = error instanceof Error ? error.message : '未知错误'
-      alert(`更新用户订阅失败: ${errorMessage}`)
-    } finally {
-      setLoading(false)
+    const updateData: UpdateSubscriptionRequest = {
+      end_date: data.end_date || undefined,
+      auto_renew: data.auto_renew,
+      cancel_at_period_end: data.cancel_at_period_end,
+      notes: data.notes || undefined,
     }
+
+    console.log('更新用户订阅数据:', updateData)
+    updateSubscriptionMutation.mutate({ id: subscription.id, data: updateData })
   }
 
   const handleFormAction = async (formData: FormData) => {
@@ -192,17 +184,17 @@ export function EditUserSubscriptionDialog({ subscription, onSubscriptionUpdated
                 type="button"
                 variant="outline"
                 onClick={() => setOpen(false)}
-                disabled={loading}
+                disabled={updateSubscriptionMutation.isPending}
                 className="flex-1"
               >
                 取消
               </Button>
               <Button 
                 type="submit" 
-                disabled={loading} 
+                disabled={updateSubscriptionMutation.isPending} 
                 className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {updateSubscriptionMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 保存
               </Button>
             </DialogFooter>

@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect, useState } from "react"
 import { 
   TrendingDown, 
   TrendingUp, 
@@ -22,41 +21,19 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useUserStats } from "@/hooks/queries/use-users"
 import { userService } from "@/lib/user-service"
-import { UserStatsResponse } from "@/lib/user-types"
-import { StandardResponse } from "@/lib/types"
 
 interface UserStatsCardsProps {
   className?: string
 }
 
 export function UserStatsCards({ className }: UserStatsCardsProps) {
-  const [data, setData] = useState<UserStatsResponse | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    loadUserStats()
-  }, [])
-
-  const loadUserStats = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      const response: StandardResponse<UserStatsResponse> = await userService.getUserStats()
-      
-      if (response.code === 0 && response.data) {
-        setData(response.data)
-      } else {
-        throw new Error(response.message || '获取用户统计数据失败')
-      }
-    } catch (err) {
-      console.error('加载用户统计数据失败:', err)
-      setError(err instanceof Error ? err.message : '加载数据失败')
-    } finally {
-      setLoading(false)
-    }
-  }
+  // 使用React Query hook获取统计数据
+  const { data: statsResponse, isLoading, error } = useUserStats()
+  
+  // 提取统计数据
+  const data = statsResponse?.code === 0 ? statsResponse.data : null
 
   const formatNumber = (num: number) => {
     return new Intl.NumberFormat('zh-CN').format(num)
@@ -90,7 +67,7 @@ export function UserStatsCards({ className }: UserStatsCardsProps) {
     return providerNames[provider] || provider
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className={`grid grid-cols-1 gap-4 @xl/main:grid-cols-2 @5xl/main:grid-cols-4 ${className}`}>
         {[...Array(4)].map((_, i) => (
@@ -114,7 +91,7 @@ export function UserStatsCards({ className }: UserStatsCardsProps) {
         <Card>
           <CardHeader>
             <CardTitle className="text-red-600">加载数据失败</CardTitle>
-            <CardDescription>{error}</CardDescription>
+            <CardDescription>{error?.message || '获取用户统计数据失败'}</CardDescription>
           </CardHeader>
         </Card>
       </div>

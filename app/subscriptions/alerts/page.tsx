@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from "react"
+import { useCallback, useState } from "react"
 import {
   Card,
   CardContent,
@@ -8,191 +8,101 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { AlertTriangle, CheckCircle, Clock, AlertCircle } from "lucide-react"
+import { AlertTriangle, CheckCircle, Clock, AlertCircle, RefreshCw } from "lucide-react"
 import { PageHeader } from "@/components/layout/page-header"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { DataTable } from "@/components/ui/data-table"
 import { 
-  SubscriptionAlert, 
-  AlertStatistics,
   ALERT_TYPE_CONFIG,
   ALERT_SEVERITY_CONFIG
 } from "@/lib/subscription-types"
 import { createAlertColumns } from "./components/alert-columns"
 import { BulkResolveDialog } from "./components/bulk-resolve-dialog"
 import { AlertStatsCard } from "./components/alert-stats-card"
+import { useAlerts, useBulkResolveAlerts } from "@/hooks/queries/use-alerts"
 
 export default function SubscriptionAlertsPage() {
-  const [alerts, setAlerts] = useState<SubscriptionAlert[]>([])
-  const [statistics, setStatistics] = useState<AlertStatistics | null>(null)
-  const [loading, setLoading] = useState(true)
   const [selectedAlerts, setSelectedAlerts] = useState<number[]>([])
   
   // 分页状态
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
-  const [totalItems, setTotalItems] = useState(0)
 
-  // 模拟数据加载
-  const loadData = useCallback(async (page: number = 1, limit: number = 10) => {
-    try {
-      setLoading(true)
-      
-      // 模拟API调用延迟
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      // 模拟告警数据
-      const mockAlerts: SubscriptionAlert[] = [
-        {
-          id: 1,
-          user_id: 1001,
-          subscription_id: 2001,
-          alert_type: 'renewal_failed',
-          severity: 'high',
-          title: '用户订阅续费失败',
-          message: '用户 john@example.com 的订阅续费失败，信用卡被拒绝',
-          status: 'pending',
-          created_at: '2024-01-15T10:30:00Z',
-          updated_at: '2024-01-15T10:30:00Z',
-          user: {
-            id: 1001,
-            email: 'john@example.com',
-            username: 'john_doe',
-            name: 'John Doe'
-          },
-          subscription: {
-            id: 2001,
-            uuid: 'sub_1234567890',
-            status: 'past_due',
-            subscription_plan: {
-              name: '专业版月付'
-            }
-          }
-        },
-        {
-          id: 2,
-          user_id: 1002,
-          subscription_id: 2002,
-          alert_type: 'expiration_warning',
-          severity: 'medium',
-          title: '订阅即将过期',
-          message: '用户 jane@example.com 的订阅将在3天后过期',
-          status: 'pending',
-          created_at: '2024-01-14T15:20:00Z',
-          updated_at: '2024-01-14T15:20:00Z',
-          user: {
-            id: 1002,
-            email: 'jane@example.com',
-            username: 'jane_smith',
-            name: 'Jane Smith'
-          },
-          subscription: {
-            id: 2002,
-            uuid: 'sub_2345678901',
-            status: 'active',
-            subscription_plan: {
-              name: '基础版年付'
-            }
-          }
-        },
-        {
-          id: 3,
-          user_id: 1003,
-          subscription_id: 2003,
-          alert_type: 'traffic_limit',
-          severity: 'critical',
-          title: '流量使用超限',
-          message: '用户 bob@example.com 已使用95%的月度流量配额',
-          status: 'resolved',
-          created_at: '2024-01-13T09:15:00Z',
-          updated_at: '2024-01-13T12:45:00Z',
-          resolved_at: '2024-01-13T12:45:00Z',
-          user: {
-            id: 1003,
-            email: 'bob@example.com',
-            username: 'bob_wilson',
-            name: 'Bob Wilson'
-          },
-          subscription: {
-            id: 2003,
-            uuid: 'sub_3456789012',
-            status: 'active',
-            subscription_plan: {
-              name: '企业版月付'
-            }
-          }
-        }
-      ]
+  // 使用React Query hooks
+  const { 
+    data: alertsResponse, 
+    isLoading: loading, 
+    error, 
+    refetch 
+  } = useAlerts({
+    offset: (currentPage - 1) * pageSize,
+    limit: pageSize,
+    enabled: true
+  })
 
-      // 模拟统计数据
-      const mockStatistics: AlertStatistics = {
-        total_alerts: 45,
-        pending_alerts: 12,
-        resolved_alerts: 30,
-        critical_alerts: 3,
-        high_priority_alerts: 8,
-        by_type: {
-          renewal_failed: 15,
-          payment_failed: 8,
-          expiration_warning: 12,
-          traffic_limit: 7,
-          usage_limit: 2,
-          system_error: 1
-        },
-        by_severity: {
-          low: 18,
-          medium: 15,
-          high: 9,
-          critical: 3
-        },
-        recent_trend: [
-          { date: '2024-01-10', count: 5 },
-          { date: '2024-01-11', count: 8 },
-          { date: '2024-01-12', count: 6 },
-          { date: '2024-01-13', count: 10 },
-          { date: '2024-01-14', count: 7 },
-          { date: '2024-01-15', count: 9 }
-        ]
-      }
+  const bulkResolveMutation = useBulkResolveAlerts()
 
-      setAlerts(mockAlerts)
-      setStatistics(mockStatistics)
-      setTotalItems(mockAlerts.length)
-      setCurrentPage(page)
-    } catch (error) {
-      console.error('加载告警数据失败:', error)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  // 提取数据
+  const alerts = alertsResponse?.items || []
+  const totalItems = alertsResponse?.total || 0
+  const statistics = alertsResponse?.statistics
 
   const handleBulkResolve = useCallback(async (alertIds: number[], note?: string) => {
     try {
-      // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // 更新本地状态
-      setAlerts(prev => prev.map(alert => 
-        alertIds.includes(alert.id) 
-          ? { ...alert, status: 'resolved' as const, resolved_at: new Date().toISOString() }
-          : alert
-      ))
-      
+      await bulkResolveMutation.mutateAsync({ alertIds, note })
       setSelectedAlerts([])
-      console.log('批量解决告警:', alertIds, note)
     } catch (error) {
+      // 错误已通过mutation自动处理和显示
       console.error('批量解决告警失败:', error)
     }
-  }, [])
+  }, [bulkResolveMutation])
 
   const handleAlertUpdated = useCallback(() => {
-    loadData(currentPage, pageSize)
-  }, [loadData, currentPage, pageSize])
+    // React Query会自动重新获取数据
+    refetch()
+  }, [refetch])
 
-  useEffect(() => {
-    loadData(currentPage, pageSize)
-  }, [loadData, currentPage, pageSize])
+  // 处理分页变化
+  const handlePaginationChange = useCallback((updater: any) => {
+    const newPagination = typeof updater === 'function' 
+      ? updater({ pageIndex: currentPage - 1, pageSize })
+      : updater
+    const newPage = newPagination.pageIndex + 1
+    const newPageSize = newPagination.pageSize
+    
+    if (newPageSize !== pageSize) {
+      setPageSize(newPageSize)
+      setCurrentPage(1)
+    } else if (newPage !== currentPage) {
+      setCurrentPage(newPage)
+    }
+  }, [currentPage, pageSize])
+
+  // 错误处理
+  if (error) {
+    return (
+      <div className="flex flex-col">
+        <PageHeader 
+          title="订阅告警管理" 
+          description="监控订阅相关的告警信息，及时处理系统异常和用户问题"
+        />
+        <main className="flex-1 p-6">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center py-8">
+                <p className="text-destructive mb-4">加载告警数据失败</p>
+                <Button onClick={() => refetch()} variant="outline">
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  重试
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col">
@@ -206,9 +116,15 @@ export default function SubscriptionAlertsPage() {
               selectedCount={selectedAlerts.length}
               onResolve={handleBulkResolve}
               alertIds={selectedAlerts}
+              loading={bulkResolveMutation.isPending}
             />
           )}
-          <Button variant="outline" onClick={() => loadData(currentPage, pageSize)}>
+          <Button 
+            variant="outline" 
+            onClick={() => refetch()}
+            disabled={loading}
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             刷新数据
           </Button>
         </div>
@@ -224,24 +140,28 @@ export default function SubscriptionAlertsPage() {
                 value={statistics.total_alerts}
                 icon={AlertTriangle}
                 color="blue"
+                loading={loading}
               />
               <AlertStatsCard
                 title="待处理"
                 value={statistics.pending_alerts}
                 icon={Clock}
                 color="yellow"
+                loading={loading}
               />
               <AlertStatsCard
                 title="已解决"
                 value={statistics.resolved_alerts}
                 icon={CheckCircle}
                 color="green"
+                loading={loading}
               />
               <AlertStatsCard
                 title="紧急告警"
                 value={statistics.critical_alerts}
                 icon={AlertCircle}
                 color="red"
+                loading={loading}
               />
             </div>
           )}
@@ -249,7 +169,7 @@ export default function SubscriptionAlertsPage() {
           {/* 告警分布卡片 */}
           {statistics && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
+              <Card className={loading ? 'animate-pulse' : ''}>
                 <CardHeader>
                   <CardTitle>按类型分布</CardTitle>
                   <CardDescription>不同告警类型的分布情况</CardDescription>
@@ -270,7 +190,7 @@ export default function SubscriptionAlertsPage() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className={loading ? 'animate-pulse' : ''}>
                 <CardHeader>
                   <CardTitle>按严重程度分布</CardTitle>
                   <CardDescription>不同严重程度的告警分布</CardDescription>
@@ -302,12 +222,16 @@ export default function SubscriptionAlertsPage() {
               </CardTitle>
               <CardDescription>
                 共 {totalItems} 条告警 {selectedAlerts.length > 0 && `(已选择 ${selectedAlerts.length} 条)`}
+                {loading && ' (加载中...)'}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {loading ? (
                 <div className="flex items-center justify-center py-8">
-                  <p className="text-muted-foreground">加载中...</p>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    <p>加载中...</p>
+                  </div>
                 </div>
               ) : (
                 <DataTable 
@@ -325,21 +249,7 @@ export default function SubscriptionAlertsPage() {
                   currentPage={currentPage}
                   pageSize={pageSize}
                   initialPagination={{ pageIndex: currentPage - 1, pageSize }}
-                  onPaginationChange={(updater) => {
-                    const newPagination = typeof updater === 'function' 
-                      ? updater({ pageIndex: currentPage - 1, pageSize })
-                      : updater
-                    const newPage = newPagination.pageIndex + 1
-                    const newPageSize = newPagination.pageSize
-                    
-                    if (newPageSize !== pageSize) {
-                      setPageSize(newPageSize)
-                      setCurrentPage(1)
-                      loadData(1, newPageSize)
-                    } else if (newPage !== currentPage) {
-                      loadData(newPage, pageSize)
-                    }
-                  }}
+                  onPaginationChange={handlePaginationChange}
                 />
               )}
             </CardContent>

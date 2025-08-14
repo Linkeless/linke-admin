@@ -16,6 +16,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import { useUpdateUserStatus } from '@/hooks/mutations/use-user-mutations'
 import { userService } from '@/lib/user-service'
 import { UserResponse } from '@/lib/user-types'
 import { cn } from '@/lib/utils'
@@ -34,7 +35,16 @@ const statusOptions = [
 
 export function QuickEditStatus({ user, onUpdate }: QuickEditStatusProps) {
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
+
+  // 使用React Query mutation hook
+  const updateStatusMutation = useUpdateUserStatus({
+    onSuccess: (data) => {
+      if (data.code === 0) {
+        setOpen(false)
+        onUpdate?.()
+      }
+    }
+  })
 
   const currentStatus = user.status
 
@@ -44,34 +54,8 @@ export function QuickEditStatus({ user, onUpdate }: QuickEditStatusProps) {
       return
     }
 
-    try {
-      setLoading(true)
-      await userService.updateUserStatus(user.id, newStatus)
-      setOpen(false)
-      onUpdate?.()
-    } catch (error) {
-      console.error('更新用户状态失败:', error)
-      
-      // 显示用户友好的错误提示
-      let errorMessage = '更新用户状态失败'
-      if (error instanceof Error) {
-        if (error.message.includes('Network Error')) {
-          errorMessage = '网络连接失败，请检查后端服务是否运行'
-        } else if (error.message.includes('401')) {
-          errorMessage = '认证失败，请重新登录'
-        } else if (error.message.includes('403')) {
-          errorMessage = '权限不足，无法执行此操作'
-        } else if (error.message.includes('404')) {
-          errorMessage = '用户不存在'
-        } else {
-          errorMessage = `更新失败: ${error.message}`
-        }
-      }
-      
-      alert(errorMessage)
-    } finally {
-      setLoading(false)
-    }
+    // 使用React Query mutation执行状态更新
+    updateStatusMutation.mutate({ id: user.id, status: newStatus })
   }
 
   const getStatusDisplay = (status: string) => {
@@ -105,7 +89,7 @@ export function QuickEditStatus({ user, onUpdate }: QuickEditStatusProps) {
           variant="ghost"
           size="sm"
           className="h-auto p-0 hover:bg-transparent"
-          disabled={loading}
+          disabled={updateStatusMutation.isPending}
         >
           {getStatusDisplay(currentStatus)}
         </Button>

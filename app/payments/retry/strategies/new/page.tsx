@@ -15,20 +15,20 @@ import { ArrowLeft, Save } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { StrategyForm } from '../../components/strategy-form'
-import { useRetryStrategyOperations } from '@/hooks/use-retry-strategies'
+import { useCreateRetryStrategy } from '@/hooks/mutations/use-payment-mutations'
 import type { CreateRetryStrategyRequest } from '@/lib/payment-retry-types'
 
 export default function NewStrategyPage() {
   const router = useRouter()
-  const { createStrategy, loading } = useRetryStrategyOperations()
+  const createStrategyMutation = useCreateRetryStrategy()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleSubmit = async (data: CreateRetryStrategyRequest) => {
     setIsSubmitting(true)
     try {
-      const result = await createStrategy(data)
+      const result = await createStrategyMutation.mutateAsync(data)
       
-      if (result.success) {
+      if (result.code === 0) {
         toast.success('策略创建成功', {
           description: `策略 "${data.name}" 已成功创建并启用`
         })
@@ -36,9 +36,9 @@ export default function NewStrategyPage() {
         return { success: true }
       } else {
         toast.error('策略创建失败', {
-          description: result.error || '请检查配置信息后重试'
+          description: result.message || '请检查配置信息后重试'
         })
-        return { success: false, error: result.error }
+        return { success: false, error: result.message }
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '未知错误'
@@ -87,7 +87,7 @@ export default function NewStrategyPage() {
         <StrategyForm
           onSubmit={handleSubmit}
           onCancel={handleCancel}
-          loading={isSubmitting || loading}
+          loading={isSubmitting || createStrategyMutation.isPending}
         />
       </div>
 

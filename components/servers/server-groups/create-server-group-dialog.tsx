@@ -25,8 +25,9 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 
-import { serverGroupService } from "@/lib/server-group-service"
 import { CreateServerGroupRequest } from "@/lib/server-group-types"
+import { useCreateServerGroup } from "@/hooks/mutations/use-server-mutations"
+import { serverQueryUtils } from "@/hooks/queries/use-servers"
 
 const formSchema = z.object({
   name: z.string().min(1, "服务器组名称不能为空").max(255, "服务器组名称不能超过255个字符"),
@@ -40,7 +41,17 @@ interface CreateServerGroupDialogProps {
 
 export function CreateServerGroupDialog({ onServerGroupCreated }: CreateServerGroupDialogProps) {
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
+  
+  // 使用 React Query mutation
+  const createServerGroupMutation = useCreateServerGroup({
+    onSuccess: (data) => {
+      if (data.code === 0) {
+        form.reset()
+        setOpen(false)
+        onServerGroupCreated()
+      }
+    }
+  })
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -50,38 +61,19 @@ export function CreateServerGroupDialog({ onServerGroupCreated }: CreateServerGr
   })
 
   const handleSubmit = async (data: FormData) => {
-    try {
-      setLoading(true)
-      
-      // 验证表单数据
-      const validationErrors = serverGroupService.validateServerGroupConfig(data)
-      if (validationErrors.length > 0) {
-        alert(`表单验证失败：\n${validationErrors.join('\n')}`)
-        return
-      }
-
-      const createData: CreateServerGroupRequest = {
-        name: data.name.trim(),
-      }
-
-      console.log('创建服务器组数据:', createData)
-      const response = await serverGroupService.createServerGroup(createData)
-      
-      if (response.code === 0) {
-        console.log('服务器组创建成功:', response.data)
-        form.reset()
-        setOpen(false)
-        onServerGroupCreated()
-      } else {
-        throw new Error(response.message || '创建失败')
-      }
-    } catch (error: unknown) {
-      console.error('创建服务器组失败:', error)
-      const errorMessage = error instanceof Error ? error.message : '未知错误'
-      alert(`创建服务器组失败: ${errorMessage}`)
-    } finally {
-      setLoading(false)
+    // 验证表单数据
+    const validationErrors = serverQueryUtils.validateServerGroupConfig(data)
+    if (validationErrors.length > 0) {
+      alert(`表单验证失败：\n${validationErrors.join('\n')}`)
+      return
     }
+
+    const createData: CreateServerGroupRequest = {
+      name: data.name.trim(),
+    }
+
+    // 使用 mutation 创建服务器组
+    createServerGroupMutation.mutate(createData)
   }
 
   const handleFormAction = async (formData: FormData) => {
@@ -131,17 +123,17 @@ export function CreateServerGroupDialog({ onServerGroupCreated }: CreateServerGr
                 type="button"
                 variant="outline"
                 onClick={() => setOpen(false)}
-                disabled={loading}
+                disabled={createServerGroupMutation.isPending}
                 className="flex-1"
               >
                 取消
               </Button>
               <Button 
                 type="submit" 
-                disabled={loading} 
+                disabled={createServerGroupMutation.isPending} 
                 className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {createServerGroupMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 保存
               </Button>
             </DialogFooter>

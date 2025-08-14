@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Eye, Server, Shield, Activity, Globe, Clock } from "lucide-react"
 import { ShadowsocksServerResponse } from "@/lib/shadowsocks-types"
-import { shadowsocksServerService } from "@/lib/shadowsocks-service"
+import { serverQueryUtils } from "@/hooks/queries/use-servers"
 
 interface ServerDetailDialogProps {
   server: ShadowsocksServerResponse
@@ -21,7 +21,7 @@ interface ServerDetailDialogProps {
 }
 
 export function ServerDetailDialog({ server, children }: ServerDetailDialogProps) {
-  const isVisible = shadowsocksServerService.getServerShowStatus(server)
+  const isVisible = serverQueryUtils.getServerShowStatus(server)
   // 注意：后端模型中没有status字段，移除状态相关代码
   
   return (
@@ -40,7 +40,7 @@ export function ServerDetailDialog({ server, children }: ServerDetailDialogProps
             {server.name}
           </DialogTitle>
           <DialogDescription>
-            服务器ID: {server.id} | 创建时间: {shadowsocksServerService.formatDateTime(server.created_at)}
+            服务器ID: {server.id} | 创建时间: {serverQueryUtils.formatDateTime(server.created_at)}
           </DialogDescription>
         </DialogHeader>
         
@@ -91,13 +91,13 @@ export function ServerDetailDialog({ server, children }: ServerDetailDialogProps
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">加密方式</label>
                   <Badge variant="outline">
-                    {shadowsocksServerService.getCipherDisplayName(server.cipher)}
+                    {serverQueryUtils.getCipherDisplayName(server.cipher)}
                   </Badge>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">混淆方式</label>
                   <Badge variant="secondary">
-                    {shadowsocksServerService.getObfsDisplayName(server.obfs)}
+                    {serverQueryUtils.getObfsDisplayName(server.obfs)}
                   </Badge>
                 </div>
               </div>
@@ -122,7 +122,7 @@ export function ServerDetailDialog({ server, children }: ServerDetailDialogProps
             <CardContent className="space-y-3">
               <div>
                 <label className="text-sm font-medium text-muted-foreground">速率限制</label>
-                <p className="text-sm">{shadowsocksServerService.formatRateLimit(server.rate)}</p>
+                <p className="text-sm">{serverQueryUtils.formatRateMultiplier(server.rate)}</p>
               </div>
               
               {server.ips && (
@@ -170,12 +170,12 @@ export function ServerDetailDialog({ server, children }: ServerDetailDialogProps
             <CardContent className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm font-medium text-muted-foreground">创建时间</span>
-                <span className="text-sm">{shadowsocksServerService.formatDateTime(server.created_at)}</span>
+                <span className="text-sm">{serverQueryUtils.formatDateTime(server.created_at)}</span>
               </div>
               {server.updated_at && (
                 <div className="flex justify-between">
                   <span className="text-sm font-medium text-muted-foreground">更新时间</span>
-                  <span className="text-sm">{shadowsocksServerService.formatDateTime(server.updated_at)}</span>
+                  <span className="text-sm">{serverQueryUtils.formatDateTime(server.updated_at)}</span>
                 </div>
               )}
             </CardContent>

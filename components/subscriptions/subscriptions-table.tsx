@@ -1,6 +1,6 @@
 // 用户订阅表格组件 - 使用shadcn/ui Table组件
 
-import { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import {
   Table,
   TableBody,
@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { 
   MoreHorizontal, 
   Edit, 
@@ -30,7 +31,8 @@ import {
   Ban, 
   CheckCircle,
   AlertTriangle,
-  Clock
+  Clock,
+  AlertCircle
 } from 'lucide-react'
 import { SubscriptionStatusBadge } from './status-badge'
 import { PriceDisplay } from './price-display'
@@ -39,7 +41,8 @@ import type { UserSubscription, Currency, BillingCycle } from '@/lib/subscriptio
 
 interface SubscriptionsTableProps {
   subscriptions: UserSubscription[]
-  loading: boolean
+  isLoading: boolean
+  error?: Error | null
   onEdit: (subscription: UserSubscription) => void
   onRenew: (id: number) => void
   onCancel: (id: number) => void
@@ -47,9 +50,10 @@ interface SubscriptionsTableProps {
   onView: (subscription: UserSubscription) => void
 }
 
-export function SubscriptionsTable({
+export const SubscriptionsTable = React.memo(function SubscriptionsTable({
   subscriptions,
-  loading,
+  isLoading,
+  error,
   onEdit,
   onRenew,
   onCancel,
@@ -58,32 +62,32 @@ export function SubscriptionsTable({
 }: SubscriptionsTableProps) {
   const [actioningId, setActioningId] = useState<number | null>(null)
 
-  const handleRenew = async (id: number) => {
+  const handleRenew = useCallback(async (id: number) => {
     setActioningId(id)
     try {
       onRenew(id)
     } finally {
       setActioningId(null)
     }
-  }
+  }, [onRenew])
 
-  const handleCancel = async (id: number) => {
+  const handleCancel = useCallback(async (id: number) => {
     setActioningId(id)
     try {
       onCancel(id)
     } finally {
       setActioningId(null)
     }
-  }
+  }, [onCancel])
 
-  const handleReactivate = async (id: number) => {
+  const handleReactivate = useCallback(async (id: number) => {
     setActioningId(id)
     try {
       onReactivate(id)
     } finally {
       setActioningId(null)
     }
-  }
+  }, [onReactivate])
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('zh-CN', {
@@ -127,7 +131,21 @@ export function SubscriptionsTable({
     )
   }
 
-  if (loading) {
+  // 错误状态
+  if (error) {
+    return (
+      <Card className="p-8">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            加载用户订阅失败: {error.message}
+          </AlertDescription>
+        </Alert>
+      </Card>
+    )
+  }
+
+  if (isLoading) {
     return <SubscriptionsTableSkeleton />
   }
 
@@ -306,10 +324,10 @@ export function SubscriptionsTable({
       </Table>
     </Card>
   )
-}
+})
 
 // 加载骨架屏组件
-function SubscriptionsTableSkeleton() {
+const SubscriptionsTableSkeleton = React.memo(function SubscriptionsTableSkeleton() {
   return (
     <Card>
       <Table>
@@ -368,4 +386,4 @@ function SubscriptionsTableSkeleton() {
       </Table>
     </Card>
   )
-}
+})

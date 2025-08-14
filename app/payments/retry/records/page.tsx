@@ -11,9 +11,9 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Settings, BarChart3, Download } from 'lucide-react'
 
-import { RecordsTable } from './components/records-table'
-import { RecordsFilters } from './components/records-filters'
-import { RecordsStats } from './components/records-stats'
+import { RecordsTableSimple } from './components/records-table-simple'
+import { RecordsFiltersSimple } from './components/records-filters-simple'
+import { RecordsStatsSimple } from './components/records-stats-simple'
 import { RecordsTableSkeleton } from './components/records-table-skeleton'
 
 export const metadata: Metadata = {
@@ -61,17 +61,17 @@ export default function RecordsPage() {
             <div key={i} className="h-24 bg-gray-100 rounded-lg animate-pulse" />
           ))}
         </div>}>
-          <RecordsStats />
+          <RecordsStatsSimple />
         </Suspense>
 
         {/* 过滤器 */}
         <Suspense fallback={<div className="h-20 bg-gray-100 rounded-lg animate-pulse" />}>
-          <RecordsFilters />
+          <RecordsFiltersSimple />
         </Suspense>
 
         {/* 记录表格 */}
         <Suspense fallback={<RecordsTableSkeleton />}>
-          <RecordsTable />
+          <RecordsTableSimple />
         </Suspense>
       </div>
     </div>

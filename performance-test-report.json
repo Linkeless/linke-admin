@@ -1,0 +1,271 @@
+{
+  "timestamp": 1755161659640,
+  "nfrCompliance": {
+    "cacheHitResponseTime": {
+      "target": 50,
+      "actual": 47.11666571900158,
+      "compliant": true
+    },
+    "memoryUsage": {
+      "target": 52428800,
+      "actual": 37748736,
+      "compliant": true
+    },
+    "cacheHitRate": {
+      "target": 0.8,
+      "actual": 0.7212500000000001,
+      "compliant": false
+    },
+    "networkReduction": {
+      "target": 0.8,
+      "actual": 0.7212500000000001,
+      "compliant": false
+    },
+    "overallCompliant": false,
+    "score": 50
+  },
+  "scenarios": {
+    "basic": {
+      "hitRate": 0.86,
+      "avgResponseTime": 44.04999147101419,
+      "cacheHitAvgTime": 44.64013290995094,
+      "networkRequests": 14
+    },
+    "dashboard-loading": {
+      "status": "PASS",
+      "duration": 101,
+      "queries": 5,
+      "avgResponseTime": 35,
+      "memoryUsage": 2097152,
+      "cacheHitRate": 0.85,
+      "issues": []
+    },
+    "user-management": {
+      "status": "PASS",
+      "duration": 101,
+      "queries": 8,
+      "avgResponseTime": 42,
+      "memoryUsage": 3145728,
+      "cacheHitRate": 0.75,
+      "issues": []
+    },
+    "subscription-management": {
+      "status": "PASS",
+      "duration": 101,
+      "queries": 12,
+      "avgResponseTime": 38,
+      "memoryUsage": 4194304,
+      "cacheHitRate": 0.82,
+      "issues": []
+    },
+    "financial-management": {
+      "status": "PASS",
+      "duration": 101,
+      "queries": 10,
+      "avgResponseTime": 45,
+      "memoryUsage": 3670016,
+      "cacheHitRate": 0.78,
+      "issues": []
+    },
+    "server-management": {
+      "status": "FAIL",
+      "duration": 101,
+      "queries": 6,
+      "avgResponseTime": 55,
+      "memoryUsage": 2621440,
+      "cacheHitRate": 0.65,
+      "issues": [
+        "Response time 55ms exceeds target 50ms",
+        "Cache hit rate 65.0% below target"
+      ]
+    },
+    "navigation-performance": {
+      "status": "PASS",
+      "duration": 101,
+      "queries": 15,
+      "avgResponseTime": 25,
+      "memoryUsage": 1048576,
+      "cacheHitRate": 0.92,
+      "issues": []
+    },
+    "memory-stress-test": {
+      "status": "FAIL",
+      "duration": 101,
+      "queries": 50,
+      "avgResponseTime": 60,
+      "memoryUsage": 15728640,
+      "cacheHitRate": 0.7,
+      "issues": [
+        "Response time 60ms exceeds target 50ms",
+        "Cache hit rate 70.0% below target"
+      ]
+    },
+    "cache-invalidation": {
+      "status": "FAIL",
+      "duration": 101,
+      "queries": 20,
+      "avgResponseTime": 80,
+      "memoryUsage": 5242880,
+      "cacheHitRate": 0.3,
+      "issues": [
+        "Response time 80ms exceeds target 50ms",
+        "Cache hit rate 30.0% below target"
+      ]
+    },
+    "memoryStressTest": {
+      "status": "PASS",
+      "maxMemory": 15099044.793616787,
+      "avgMemoryDelta": 2453672.9748179717,
+      "iterations": 10,
+      "details": [
+        {
+          "iteration": 1,
+          "memoryBefore": 10485760,
+          "memoryAfter": 10654128.609164387,
+          "memoryDelta": 168368.60916438745,
+          "queriesExecuted": 15
+        },
+        {
+          "iteration": 2,
+          "memoryBefore": 10485760,
+          "memoryAfter": 15099044.793616787,
+          "memoryDelta": 4613284.793616787,
+          "queriesExecuted": 16
+        },
+        {
+          "iteration": 3,
+          "memoryBefore": 10485760,
+          "memoryAfter": 12460691.77541765,
+          "memoryDelta": 1974931.7754176504,
+          "queriesExecuted": 15
+        },
+        {
+          "iteration": 4,
+          "memoryBefore": 10485760,
+          "memoryAfter": 12098485.257564351,
+          "memoryDelta": 1612725.2575643512,
+          "queriesExecuted": 28
+        },
+        {
+          "iteration": 5,
+          "memoryBefore": 10485760,
+          "memoryAfter": 13318561.364441259,
+          "memoryDelta": 2832801.364441259,
+          "queriesExecuted": 11
+        },
+        {
+          "iteration": 6,
+          "memoryBefore": 10485760,
+          "memoryAfter": 12467814.993074972,
+          "memoryDelta": 1982054.9930749729,
+          "queriesExecuted": 24
+        },
+        {
+          "iteration": 7,
+          "memoryBefore": 10485760,
+          "memoryAfter": 13316009.584750645,
+          "memoryDelta": 2830249.584750645,
+          "queriesExecuted": 27
+        },
+        {
+          "iteration": 8,
+          "memoryBefore": 10485760,
+          "memoryAfter": 13493040.471814089,
+          "memoryDelta": 3007280.4718140895,
+          "queriesExecuted": 25
+        },
+        {
+          "iteration": 9,
+          "memoryBefore": 10485760,
+          "memoryAfter": 13204774.283819951,
+          "memoryDelta": 2719014.283819952,
+          "queriesExecuted": 25
+        },
+        {
+          "iteration": 10,
+          "memoryBefore": 10485760,
+          "memoryAfter": 13281778.614515625,
+          "memoryDelta": 2796018.614515626,
+          "queriesExecuted": 21
+        }
+      ]
+    }
+  },
+  "recommendations": [
+    {
+      "priority": "MEDIUM",
+      "category": "Cache Efficiency",
+      "issue": "Cache hit rate 72.1% below target 80.0%",
+      "solutions": [
+        "Implement smart prefetching strategies",
+        "Optimize cache invalidation logic",
+        "Increase staleTime for static data",
+        "Implement route-based cache warming"
+      ]
+    },
+    {
+      "priority": "MEDIUM",
+      "category": "Network Optimization",
+      "issue": "Network request reduction 72.1% below target 80.0%",
+      "solutions": [
+        "Implement aggressive caching for static data",
+        "Add intelligent preloading mechanisms",
+        "Optimize query dependencies to reduce cascade requests",
+        "Implement offline-first strategies where applicable"
+      ]
+    },
+    {
+      "priority": "MEDIUM",
+      "category": "Scenario: server-management",
+      "issue": "Performance issues in server-management",
+      "solutions": [
+        "Response time 55ms exceeds target 50ms",
+        "Cache hit rate 65.0% below target"
+      ]
+    },
+    {
+      "priority": "MEDIUM",
+      "category": "Scenario: memory-stress-test",
+      "issue": "Performance issues in memory-stress-test",
+      "solutions": [
+        "Response time 60ms exceeds target 50ms",
+        "Cache hit rate 70.0% below target"
+      ]
+    },
+    {
+      "priority": "MEDIUM",
+      "category": "Scenario: cache-invalidation",
+      "issue": "Performance issues in cache-invalidation",
+      "solutions": [
+        "Response time 80ms exceeds target 50ms",
+        "Cache hit rate 30.0% below target"
+      ]
+    },
+    {
+      "priority": "LOW",
+      "category": "General Optimization",
+      "issue": "Overall success rate 66.7% could be improved",
+      "solutions": [
+        "Implement comprehensive error handling and retry strategies",
+        "Add performance monitoring in production",
+        "Regularly review and update cache strategies",
+        "Consider implementing query batching for related requests"
+      ]
+    }
+  ],
+  "summary": {
+    "successRate": 66.66666666666666,
+    "passedScenarios": 6,
+    "totalScenarios": 9,
+    "nfrCompliant": false,
+    "complianceScore": 50,
+    "testDuration": 1323
+  },
+  "generatedAt": "2025-08-14T08:54:20.964Z",
+  "version": "1.0.0",
+  "environment": {
+    "nodeVersion": "v23.7.0",
+    "platform": "darwin",
+    "cwd": "/Users/easayliu/Documents/cursor/linke-admin"
+  }
+}

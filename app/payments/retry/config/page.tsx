@@ -30,32 +30,35 @@ import { toast } from 'sonner'
 import { ConfigForm } from './components/config-form'
 import { ConfigStats } from './components/config-stats'
 import { ConfigRecommendations } from './components/config-recommendations'
-import { useRetryConfigManagement } from '@/hooks/use-retry-config'
+import { useRetryConfig } from '@/hooks/queries/use-payments'
 
 export default function ConfigPage() {
-  const {
-    config,
-    stats,
-    overview,
-    loading,
-    error,
-    updateConfig,
-    refreshStats,
-    refreshOverview,
-    getSystemHealth,
-    getConfigRecommendations,
-    optimizeConfig
-  } = useRetryConfigManagement(true)
+  // 使用 React Query 获取重试配置
+  const { 
+    data: configResponse, 
+    isLoading, 
+    error, 
+    refetch 
+  } = useRetryConfig({
+    enabled: true
+  })
+  
+  const config = configResponse?.data
+  const loading = isLoading
 
   const [activeTab, setActiveTab] = useState('settings')
   const [isOptimizing, setIsOptimizing] = useState(false)
 
-  const systemHealth = getSystemHealth()
-  const recommendations = getConfigRecommendations()
+  // TODO: 实现系统健康检查和建议功能
+  const systemHealth = null // getSystemHealth()
+  const recommendations = [] // getConfigRecommendations()
 
   const handleOptimizeConfig = async () => {
     setIsOptimizing(true)
     try {
+      // TODO: 实现配置优化功能
+      toast.info('配置优化功能开发中...')
+      /*
       const result = await optimizeConfig()
       if (result.success) {
         toast.success('配置优化成功', {
@@ -66,6 +69,7 @@ export default function ConfigPage() {
           description: result.error || '优化过程中发生错误'
         })
       }
+      */
     } catch (error) {
       toast.error('配置优化失败', {
         description: '请稍后重试'
@@ -76,10 +80,7 @@ export default function ConfigPage() {
   }
 
   const handleRefreshAll = async () => {
-    await Promise.all([
-      refreshStats(),
-      refreshOverview()
-    ])
+    await refetch()
     toast.success('数据已刷新')
   }
 
@@ -101,7 +102,7 @@ export default function ConfigPage() {
           <Button 
             variant="outline" 
             onClick={handleOptimizeConfig}
-            disabled={isOptimizing || !stats}
+            disabled={isOptimizing}
           >
             <Zap className={`mr-2 h-4 w-4 ${isOptimizing ? 'animate-pulse' : ''}`} />
             {isOptimizing ? '优化中...' : '一键优化'}
@@ -184,7 +185,7 @@ export default function ConfigPage() {
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            加载配置数据失败: {error}
+            加载配置数据失败: {error instanceof Error ? error.message : '未知错误'}
           </AlertDescription>
         </Alert>
       )}

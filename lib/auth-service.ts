@@ -30,18 +30,24 @@ export class AuthService {
    */
   async login(credentials: LoginRequest): Promise<AuthResponse> {
     try {
-      const response: StandardResponse<AuthResponse> = await api.post('/auth/login', credentials)
+      const response: AuthResponse = await api.post('/auth/login', credentials)
       
-      if (response.code === 0 && response.data) {
-        // 验证用户是否有管理员权限
-        if (response.data.user.role !== 'admin' && response.data.user.role !== 'system') {
-          throw new ApiError('您没有管理员权限，无法访问此系统', 403)
-        }
-        
-        return response.data
-      } else {
-        throw new ApiError(response.message || '登录失败', response.code || 500)
+      // 验证响应数据完整性
+      if (!response || !response.user || !response.token) {
+        throw new ApiError('登录响应数据格式错误', 500)
       }
+      
+      // 验证用户是否有管理员权限
+      if (response.user.role !== 'admin' && response.user.role !== 'system') {
+        throw new ApiError('您没有管理员权限，无法访问此系统', 403)
+      }
+      
+      // 验证token数据完整性
+      if (!response.token.access_token || !response.token.token_type) {
+        throw new ApiError('登录token数据不完整', 500)
+      }
+      
+      return response
     } catch (error) {
       if (error instanceof ApiError) {
         throw error
@@ -60,13 +66,14 @@ export class AuthService {
         redirect_uri: redirectUri || `${window.location.origin}/auth/callback?provider=${provider}`,
       }
       
-      const response: StandardResponse<AuthorizeURLResponse> = await api.post('/auth/url', request)
+      const response: AuthorizeURLResponse = await api.post('/auth/url', request)
       
-      if (response.code === 0 && response.data) {
-        return response.data
-      } else {
-        throw new ApiError(response.message || 'OAuth授权URL获取失败', response.code || 500)
+      // 验证响应数据完整性
+      if (!response || !response.auth_url) {
+        throw new ApiError('OAuth授权URL响应数据格式错误', 500)
       }
+      
+      return response
     } catch (error) {
       if (error instanceof ApiError) {
         throw error
@@ -86,18 +93,24 @@ export class AuthService {
         state,
       }
 
-      const response: StandardResponse<AuthResponse> = await api.post('/auth/token', request)
+      const response: AuthResponse = await api.post('/auth/token', request)
 
-      if (response.code === 0 && response.data) {
-        // 验证用户是否有管理员权限
-        if (response.data.user.role !== 'admin' && response.data.user.role !== 'system') {
-          throw new ApiError('您没有管理员权限，无法访问此系统', 403)
-        }
-        
-        return response.data
-      } else {
-        throw new ApiError(response.message || 'OAuth登录失败', response.code || 500)
+      // 验证响应数据完整性
+      if (!response || !response.user || !response.token) {
+        throw new ApiError('OAuth登录响应数据格式错误', 500)
       }
+      
+      // 验证用户是否有管理员权限
+      if (response.user.role !== 'admin' && response.user.role !== 'system') {
+        throw new ApiError('您没有管理员权限，无法访问此系统', 403)
+      }
+      
+      // 验证token数据完整性
+      if (!response.token.access_token || !response.token.token_type) {
+        throw new ApiError('OAuth登录token数据不完整', 500)
+      }
+      
+      return response
     } catch (error) {
       if (error instanceof ApiError) {
         throw error
@@ -184,13 +197,15 @@ export class AuthService {
    */
   async getOAuthProviders(): Promise<string[]> {
     try {
-      const response: StandardResponse<string[]> = await api.get('/auth/providers')
+      const response: string[] = await api.get('/auth/providers')
       
-      if (response.code === 0 && response.data) {
-        return response.data
-      } else {
-        return [] // 如果获取失败，返回空数组
+      // 验证响应数据类型
+      if (!Array.isArray(response)) {
+        console.warn('OAuth提供商列表响应格式不正确:', response)
+        return [] // 如果格式不正确，返回空数组
       }
+      
+      return response
     } catch (error) {
       console.warn('获取OAuth提供商列表失败:', error)
       return []

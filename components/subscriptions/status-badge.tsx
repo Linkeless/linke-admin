@@ -1,5 +1,6 @@
 // 订阅状态标签组件 - 使用shadcn/ui Badge组件
 
+import React, { useMemo } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { 
   SUBSCRIPTION_STATUS_CONFIG, 
@@ -18,22 +19,22 @@ interface PlanStatusBadgeProps {
   className?: string
 }
 
-export function SubscriptionStatusBadge({ status, className }: SubscriptionStatusBadgeProps) {
-  const config = SUBSCRIPTION_STATUS_CONFIG[status]
+export const SubscriptionStatusBadge = React.memo(function SubscriptionStatusBadge({ status, className }: SubscriptionStatusBadgeProps) {
+  const config = useMemo(() => SUBSCRIPTION_STATUS_CONFIG[status], [status])
   
   return (
     <Badge variant={config.variant} className={className}>
       {config.text}
     </Badge>
   )
-}
+})
 
-export function PlanStatusBadge({ status, className }: PlanStatusBadgeProps) {
-  const config = PLAN_STATUS_CONFIG[status]
+export const PlanStatusBadge = React.memo(function PlanStatusBadge({ status, className }: PlanStatusBadgeProps) {
+  const config = useMemo(() => PLAN_STATUS_CONFIG[status], [status])
   
   return (
     <Badge variant={config.variant} className={className}>
       {config.text}
     </Badge>
   )
-}
+})

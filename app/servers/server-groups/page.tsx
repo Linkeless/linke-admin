@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from "react"
+import { useState, useCallback } from "react"
 import {
   Card,
   CardContent,
@@ -8,62 +8,60 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Layers } from "lucide-react"
+import { Layers, RefreshCw, AlertCircle } from "lucide-react"
 import { PageHeader } from "@/components/layout/page-header"
-
-import { serverGroupService } from "@/lib/server-group-service"
-import { ServerGroupResponse } from "@/lib/server-group-types"
 import { createColumns } from "./columns"
 import { DataTable } from "@/components/ui/data-table"
 import { 
   CreateServerGroupDialog
 } from "@/components/servers/server-groups"
 import { Pagination } from "@/components/subscriptions"
+import { Button } from "@/components/ui/button"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useServerGroups } from "@/hooks/queries/use-server-groups"
+import { useQueryClient } from "@tanstack/react-query"
+import { queryKeys } from "@/lib/query-keys"
 
 export default function ServerGroupsPage() {
-  const [serverGroups, setServerGroups] = useState<ServerGroupResponse[]>([])
-  const [loading, setLoading] = useState(true)
-  
   // 分页状态 - 使用基于页码的分页（shadcn/ui标准）
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
-  const [totalItems, setTotalItems] = useState(0)
+  
+  const queryClient = useQueryClient()
+  
+  // 计算 offset
+  const offset = (currentPage - 1) * pageSize
+  
+  // 使用 React Query 获取服务器组数据
+  const { 
+    data: groupsResponse, 
+    isLoading: loading, 
+    error,
+    refetch 
+  } = useServerGroups({
+    offset,
+    limit: pageSize,
+  })
+  
+  // 解析数据
+  const serverGroups = groupsResponse?.data?.items || []
+  const totalItems = groupsResponse?.data?.pagination?.total || 0
 
-  const loadData = useCallback(async (page: number = 1, limit: number = 10) => {
-    try {
-      setLoading(true)
-      
-      console.log('加载服务器组列表，page:', page, 'limit:', limit)
-      const response = await serverGroupService.getServerGroups({
-        page: page,
-        limit: limit
-      })
-      
-      if (response.code === 0 && response.data) {
-        setServerGroups(response.data.items || [])
-        setTotalItems(response.data.pagination.total || 0)
-        setCurrentPage(page)
-      }
-    } catch (error) {
-      console.error('加载服务器组列表失败:', error)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
+  // 服务器组创建/更新后的处理
   const handleServerGroupCreated = useCallback(() => {
-    // 重新加载服务器组列表
-    loadData(currentPage, pageSize)
-  }, [loadData, currentPage, pageSize])
+    // 使用 React Query 的缓存失效机制
+    queryClient.invalidateQueries({ queryKey: queryKeys.serverGroups.lists() })
+  }, [queryClient])
 
   const handleServerGroupUpdated = useCallback(() => {
-    // 重新加载服务器组列表
-    loadData(currentPage, pageSize)
-  }, [loadData, currentPage, pageSize])
-
-  useEffect(() => {
-    loadData(currentPage, pageSize)
-  }, [loadData, currentPage, pageSize])
+    // 使用 React Query 的缓存失效机制
+    queryClient.invalidateQueries({ queryKey: queryKeys.serverGroups.lists() })
+  }, [queryClient])
+  
+  // 手动刷新
+  const handleRefresh = () => {
+    refetch()
+  }
 
   return (
     <div className="flex flex-col">
@@ -87,12 +85,41 @@ export default function ServerGroupsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                {error && (
+                  <Alert variant="destructive" className="mb-4">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      加载服务器组列表失败：{error?.message || '未知错误'}
+                      <Button 
+                        variant="link" 
+                        size="sm" 
+                        onClick={() => refetch()} // error refetch handler
+                        className="ml-2"
+                      >
+                        重试
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
+                )}
                 {loading ? (
                   <div className="flex items-center justify-center py-8">
                     <p className="text-muted-foreground">加载中...</p>
                   </div>
                 ) : (
                   <>
+                    {/* 刷新按钮 */}
+                    <div className="flex justify-end mb-4">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleRefresh}
+                        disabled={loading}
+                      >
+                        <RefreshCw className="h-4 w-4 mr-1" />
+                        刷新
+                      </Button>
+                    </div>
+                    
                     {/* 数据表格（支持服务端分页） */}
                     <DataTable 
                       columns={createColumns({ 
@@ -112,14 +139,12 @@ export default function ServerGroupsPage() {
                       onPageChange={(page) => {
                         if (page !== currentPage) {
                           setCurrentPage(page)
-                          loadData(page, pageSize)
                         }
                       }}
                       onPageSizeChange={(size) => {
                         if (size !== pageSize) {
                           setPageSize(size)
                           setCurrentPage(1)
-                          // useEffect 会触发 loadData(1, size)
                         }
                       }}
                       className="pt-4"

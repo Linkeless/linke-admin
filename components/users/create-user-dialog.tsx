@@ -33,7 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { userService } from "@/lib/user-service"
+import { useCreateUser } from "@/hooks/mutations/use-user-mutations"
 import { CreateUserRequest, UserDetailResponse } from "@/lib/user-types"
 
 const createUserSchema = z.object({
@@ -71,7 +71,20 @@ interface CreateUserDialogProps {
 
 export function CreateUserDialog({ onUserCreated, trigger }: CreateUserDialogProps) {
   const [open, setOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  
+  // 使用React Query mutation hook
+  const createUserMutation = useCreateUser({
+    onSuccess: (data) => {
+      if (data.code === 0) {
+        // 重置表单
+        form.reset()
+        // 关闭对话框
+        setOpen(false)
+        // 通知父组件用户已创建
+        onUserCreated?.(data)
+      }
+    }
+  })
 
   const form = useForm<CreateUserFormValues>({
     resolver: zodResolver(createUserSchema),
@@ -86,49 +99,20 @@ export function CreateUserDialog({ onUserCreated, trigger }: CreateUserDialogPro
   })
 
   const handleSubmit = async (values: CreateUserFormValues) => {
-    try {
-      setIsLoading(true)
-      
-      // 准备API请求数据
-      const createUserData: CreateUserRequest = {
-        email: values.email,
-      }
-      
-      // 只添加非空字段
-      if (values.name && values.name.trim()) createUserData.name = values.name.trim()
-      if (values.username && values.username.trim()) createUserData.username = values.username.trim()
-      if (values.password && values.password.trim()) createUserData.password = values.password.trim()
-      if (values.role) createUserData.role = values.role
-      if (values.status) createUserData.status = values.status
-
-      console.log('创建用户请求数据:', createUserData)
-      
-      const response = await userService.createUser(createUserData)
-      
-      if (response.code === 0 && response.data) {
-        console.log('用户创建成功:', response.data)
-        
-        // 重置表单
-        form.reset()
-        
-        // 关闭对话框
-        setOpen(false)
-        
-        // 通知父组件用户已创建
-        onUserCreated?.(response)
-        
-        // TODO: 添加成功提示
-        console.log('用户创建成功')
-      } else {
-        throw new Error(response.message || '创建用户失败')
-      }
-    } catch (error) {
-      console.error('创建用户失败:', error)
-      // TODO: 添加错误提示
-      alert(error instanceof Error ? error.message : '创建用户失败')
-    } finally {
-      setIsLoading(false)
+    // 准备API请求数据
+    const createUserData: CreateUserRequest = {
+      email: values.email,
     }
+    
+    // 只添加非空字段
+    if (values.name && values.name.trim()) createUserData.name = values.name.trim()
+    if (values.username && values.username.trim()) createUserData.username = values.username.trim()
+    if (values.password && values.password.trim()) createUserData.password = values.password.trim()
+    if (values.role) createUserData.role = values.role
+    if (values.status) createUserData.status = values.status
+
+    // 使用React Query mutation执行创建操作
+    createUserMutation.mutate(createUserData)
   }
 
   const handleFormAction = async (formData: FormData) => {
@@ -294,13 +278,13 @@ export function CreateUserDialog({ onUserCreated, trigger }: CreateUserDialogPro
                 type="button"
                 variant="outline"
                 onClick={() => setOpen(false)}
-                disabled={isLoading}
+                disabled={createUserMutation.isPending}
               >
                 取消
               </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isLoading ? '创建中...' : '创建用户'}
+              <Button type="submit" disabled={createUserMutation.isPending}>
+                {createUserMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {createUserMutation.isPending ? '创建中...' : '创建用户'}
               </Button>
             </DialogFooter>
           </form>

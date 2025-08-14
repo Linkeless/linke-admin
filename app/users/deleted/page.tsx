@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from "react"
+import { useState, useCallback } from "react"
 import {
   Card,
   CardContent,
@@ -13,49 +13,37 @@ import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { PageHeader } from "@/components/layout/page-header"
 
-import { userService } from "@/lib/user-service"
 import { UserResponse } from "@/lib/user-types"
 import { createDeletedUsersColumns } from "./columns"
 import { DataTable } from "@/components/ui/data-table"
+import { useDeletedUsers } from "@/hooks/queries/use-users"
 
 export default function DeletedUsersPage() {
-  const [users, setUsers] = useState<UserResponse[]>([])
-  const [loading, setLoading] = useState(true)
   // 分页状态
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
-  const [totalItems, setTotalItems] = useState(0)
-  const [totalPages, setTotalPages] = useState(0)
 
-  const loadData = useCallback(async (page: number = 1, limit: number = 10) => {
-    try {
-      setLoading(true)
-      // 清空选择
-      
-      console.log('加载已删除用户列表，页码:', page, '每页:', limit)
-      const response = await userService.getDeletedUsers({
-        page,
-        limit
-      })
-      
-      if (response.code === 0 && response.data) {
-        setUsers(response.data.items)
-        setTotalItems(response.data.pagination.total)
-        setTotalPages(response.data.pagination.total_pages || Math.ceil(response.data.pagination.total / response.data.pagination.limit))
-        setCurrentPage(response.data.pagination.page)
-      }
-    } catch (error) {
-      console.error('加载已删除用户列表失败:', error)
-      // 可以添加错误提示
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  // 使用 React Query 获取已删除用户数据
+  const { 
+    data: deletedUsersResponse, 
+    isLoading, 
+    error, 
+    refetch 
+  } = useDeletedUsers({
+    page: currentPage,
+    limit: pageSize
+  })
+
+  // 从响应中提取数据
+  const users = deletedUsersResponse?.data?.items || []
+  const totalItems = deletedUsersResponse?.data?.pagination?.total || 0
+  const totalPages = deletedUsersResponse?.data?.pagination?.total_pages || 
+    Math.ceil(totalItems / pageSize) || 0
 
   const handleUserRestored = useCallback(() => {
     // 重新加载用户列表
-    loadData(currentPage, pageSize)
-  }, [loadData, currentPage, pageSize])
+    refetch()
+  }, [refetch])
 
   const handleSelectionChange = useCallback((_users: UserResponse[]) => {
     // 处理选择变更 - 当前未使用
@@ -63,19 +51,14 @@ export default function DeletedUsersPage() {
 
   // 处理分页变更
   const handlePageChange = useCallback((page: number) => {
-    loadData(page, pageSize)
-  }, [loadData, pageSize])
+    setCurrentPage(page)
+  }, [])
 
   // 处理每页显示数量变更
   const handlePageSizeChange = useCallback((newPageSize: number) => {
     setPageSize(newPageSize)
     setCurrentPage(1) // 重置到第一页
-    loadData(1, newPageSize)
-  }, [loadData])
-
-  useEffect(() => {
-    loadData(1, pageSize)
-  }, [loadData, pageSize])
+  }, [])
 
   return (
     <div className="flex flex-col">
@@ -101,9 +84,18 @@ export default function DeletedUsersPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {loading ? (
+                {isLoading ? (
                   <div className="flex items-center justify-center py-8">
                     <p className="text-muted-foreground">加载中...</p>
+                  </div>
+                ) : error ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="text-center">
+                      <p className="text-destructive">加载已删除用户列表失败</p>
+                      <Button variant="outline" onClick={() => refetch()} className="mt-2">
+                        重试
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   <>

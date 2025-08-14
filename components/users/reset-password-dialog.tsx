@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useResetUserPassword } from '@/hooks/mutations/use-user-mutations'
 import { userService } from '@/lib/user-service'
 import { UserResponse } from '@/lib/user-types'
 
@@ -57,9 +58,19 @@ export function ResetPasswordDialog({
   onPasswordReset 
 }: ResetPasswordDialogProps) {
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+
+  // 使用React Query mutation hook
+  const resetPasswordMutation = useResetUserPassword({
+    onSuccess: (data) => {
+      if (data.code === 0) {
+        setOpen(false)
+        form.reset()
+        onPasswordReset?.()
+      }
+    }
+  })
 
   const form = useForm<FormData>({
     resolver: zodResolver(resetPasswordSchema),
@@ -76,38 +87,11 @@ export function ResetPasswordDialog({
   }
 
   const handleSubmit = async (data: FormData) => {
-    try {
-      setLoading(true)
-      await userService.resetUserPassword(user.id, data.newPassword)
-      
-      setOpen(false)
-      form.reset()
-      onPasswordReset?.()
-      
-      // 显示成功提示
-      alert('密码重置成功！')
-    } catch (error) {
-      console.error('重置密码失败:', error)
-      
-      let errorMessage = '重置密码失败'
-      if (error instanceof Error) {
-        if (error.message.includes('Network Error')) {
-          errorMessage = '网络连接失败，请检查后端服务是否运行'
-        } else if (error.message.includes('401')) {
-          errorMessage = '认证失败，请重新登录'
-        } else if (error.message.includes('403')) {
-          errorMessage = '权限不足，无法执行此操作'
-        } else if (error.message.includes('404')) {
-          errorMessage = '用户不存在'
-        } else {
-          errorMessage = `重置失败: ${error.message}`
-        }
-      }
-      
-      alert(errorMessage)
-    } finally {
-      setLoading(false)
-    }
+    // 使用React Query mutation执行密码重置
+    resetPasswordMutation.mutate({
+      id: user.id,
+      newPassword: data.newPassword
+    })
   }
 
   const handleFormAction = async (formData: FormData) => {
@@ -182,7 +166,7 @@ export function ResetPasswordDialog({
                         {...field}
                         type={showPassword ? 'text' : 'password'}
                         placeholder="请输入新密码"
-                        disabled={loading}
+                        disabled={resetPasswordMutation.isPending}
                       />
                       <Button
                         type="button"
@@ -190,7 +174,7 @@ export function ResetPasswordDialog({
                         size="sm"
                         className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                         onClick={() => setShowPassword(!showPassword)}
-                        disabled={loading}
+                        disabled={resetPasswordMutation.isPending}
                       >
                         {showPassword ? (
                           <EyeOff className="h-4 w-4" />
@@ -220,7 +204,7 @@ export function ResetPasswordDialog({
                         {...field}
                         type={showConfirmPassword ? 'text' : 'password'}
                         placeholder="请再次输入新密码"
-                        disabled={loading}
+                        disabled={resetPasswordMutation.isPending}
                       />
                       <Button
                         type="button"
@@ -228,7 +212,7 @@ export function ResetPasswordDialog({
                         size="sm"
                         className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        disabled={loading}
+                        disabled={resetPasswordMutation.isPending}
                       >
                         {showConfirmPassword ? (
                           <EyeOff className="h-4 w-4" />
@@ -251,12 +235,12 @@ export function ResetPasswordDialog({
                   setOpen(false)
                   form.reset()
                 }}
-                disabled={loading}
+                disabled={resetPasswordMutation.isPending}
               >
                 取消
               </Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? '重置中...' : '重置密码'}
+              <Button type="submit" disabled={resetPasswordMutation.isPending}>
+                {resetPasswordMutation.isPending ? '重置中...' : '重置密码'}
               </Button>
             </DialogFooter>
           </form>

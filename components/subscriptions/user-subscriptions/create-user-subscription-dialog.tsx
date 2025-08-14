@@ -38,6 +38,8 @@ import {
   CreateSubscriptionRequest,
   SubscriptionPlan,
 } from "@/lib/subscription-types"
+import { useActiveSubscriptionPlans } from "@/hooks/queries/use-subscription"
+import { useCreateUserSubscription } from "@/hooks/mutations/use-subscription-mutations"
 import { useEffect } from "react"
 
 const formSchema = z.object({
@@ -62,8 +64,25 @@ interface CreateUserSubscriptionDialogProps {
 
 export function CreateUserSubscriptionDialog({ onSubscriptionCreated }: CreateUserSubscriptionDialogProps) {
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [plans, setPlans] = useState<SubscriptionPlan[]>([])
+  
+  // 使用React Query获取活跃订阅计划
+  const { data: plansResponse, isLoading: plansLoading } = useActiveSubscriptionPlans({
+    limit: 100,
+    offset: 0
+  })
+  
+  const plans = plansResponse?.data?.items || []
+  
+  const createSubscriptionMutation = useCreateUserSubscription({
+    onSuccess: () => {
+      form.reset()
+      setOpen(false)
+      onSubscriptionCreated()
+    },
+    onError: (error) => {
+      console.error('创建用户订阅失败:', error)
+    }
+  })
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -82,61 +101,26 @@ export function CreateUserSubscriptionDialog({ onSubscriptionCreated }: CreateUs
     },
   })
 
-  // 加载订阅计划
-  useEffect(() => {
-    loadPlans()
-  }, [])
-
-  const loadPlans = async () => {
-    try {
-      const response = await subscriptionService.getPlans({ limit: 100, offset: 0 })
-      if (response.code === 0 && response.data) {
-        // API返回嵌套格式: { data: { items: [...], pagination: {...} } }
-        const allPlans = response.data.items || []
-        setPlans(allPlans.filter(plan => plan.status === 'active'))
-      }
-    } catch (error) {
-      console.error('加载订阅计划失败:', error)
-    }
-  }
+  // 加载订阅计划 - 已由React Query处理，移除useEffect
 
   const handleSubmit = async (data: FormData) => {
-    try {
-      setLoading(true)
-      
-      // 使用新的管理员创建API
-      const createData: CreateSubscriptionRequest = {
-        user_id: data.user_id,
-        subscription_plan_id: data.subscription_plan_id,
-        reason: data.reason || "管理员创建订阅",
-        notes: data.notes || undefined,
-        start_date: data.start_date || undefined,
-        use_trial: data.use_trial,
-        skip_payment: data.skip_payment,
-        send_notification: data.send_notification,
-        custom_traffic_limit: data.custom_traffic_limit || undefined,
-        custom_traffic_reset_cycle: data.custom_traffic_reset_cycle || undefined,
-        disable_traffic_limit: data.disable_traffic_limit,
-      }
-
-      console.log('创建用户订阅数据:', createData)
-      const response = await subscriptionService.createUserSubscription(createData)
-      
-      if (response.code === 0) {
-        console.log('用户订阅创建成功:', response.data)
-        form.reset()
-        setOpen(false)
-        onSubscriptionCreated()
-      } else {
-        throw new Error(response.message || '创建失败')
-      }
-    } catch (error: unknown) {
-      console.error('创建用户订阅失败:', error)
-      const errorMessage = error instanceof Error ? error.message : '未知错误'
-      alert(`创建用户订阅失败: ${errorMessage}`)
-    } finally {
-      setLoading(false)
+    // 使用新的管理员创建API
+    const createData: CreateSubscriptionRequest = {
+      user_id: data.user_id,
+      subscription_plan_id: data.subscription_plan_id,
+      reason: data.reason || "管理员创建订阅",
+      notes: data.notes || undefined,
+      start_date: data.start_date || undefined,
+      use_trial: data.use_trial,
+      skip_payment: data.skip_payment,
+      send_notification: data.send_notification,
+      custom_traffic_limit: data.custom_traffic_limit || undefined,
+      custom_traffic_reset_cycle: data.custom_traffic_reset_cycle || undefined,
+      disable_traffic_limit: data.disable_traffic_limit,
     }
+
+    console.log('创建用户订阅数据:', createData)
+    createSubscriptionMutation.mutate(createData)
   }
 
   const handleFormAction = async (formData: FormData) => {
@@ -203,11 +187,17 @@ export function CreateUserSubscriptionDialog({ onSubscriptionCreated }: CreateUs
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {plans.map((plan) => (
-                        <SelectItem key={plan.id} value={plan.id.toString()}>
-                          {plan.name} - {plan.currency} {plan.price}
-                        </SelectItem>
-                      ))}
+                      {plansLoading ? (
+                        <SelectItem value="" disabled>加载中...</SelectItem>
+                      ) : plans.length === 0 ? (
+                        <SelectItem value="" disabled>暂无可用计划</SelectItem>
+                      ) : (
+                        plans.map((plan) => (
+                          <SelectItem key={plan.id} value={plan.id.toString()}>
+                            {plan.name} - {plan.currency} {plan.price}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -388,17 +378,17 @@ export function CreateUserSubscriptionDialog({ onSubscriptionCreated }: CreateUs
                 type="button"
                 variant="outline"
                 onClick={() => setOpen(false)}
-                disabled={loading}
+                disabled={createSubscriptionMutation.isPending}
                 className="flex-1"
               >
                 取消
               </Button>
               <Button 
                 type="submit" 
-                disabled={loading} 
+                disabled={createSubscriptionMutation.isPending} 
                 className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {createSubscriptionMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 保存
               </Button>
             </DialogFooter>

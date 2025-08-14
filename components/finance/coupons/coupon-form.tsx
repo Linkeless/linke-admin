@@ -61,7 +61,6 @@ export function CouponForm({
   onCancel,
   isEdit = false 
 }: CouponFormProps) {
-  const [submitError, setSubmitError] = useState<string>('')
   const [showAdvanced, setShowAdvanced] = useState(false)
 
   const form = useForm<FormData>({
@@ -84,17 +83,18 @@ export function CouponForm({
 
   // 生成随机优惠码
   const generateCode = async () => {
-    const code = await couponService.generateCouponCode('COUPON')
-    form.setValue('code', code)
+    try {
+      const code = await couponService.generateCouponCode('COUPON')
+      form.setValue('code', code)
+    } catch (error) {
+      // 生成失败时显示错误，但不阻止用户手动输入
+      console.warn('优惠码生成失败，请手动输入:', error)
+    }
   }
 
   const handleSubmit = async (data: FormData) => {
-    try {
-      setSubmitError('')
-      await onSubmit(data)
-    } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : '操作失败')
-    }
+    // 直接调用父组件的onSubmit，错误处理由React Query mutations统一处理
+    await onSubmit(data)
   }
 
   const handleFormAction = async (formData: FormData) => {
@@ -356,11 +356,6 @@ export function CouponForm({
           </div>
         )}
 
-        {submitError && (
-          <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
-            {submitError}
-          </div>
-        )}
 
         <div className="flex justify-end gap-3 pt-4">
           <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>

@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { useBatchDeleteUsers, useBatchRestoreUsers } from "@/hooks/mutations/use-user-mutations"
 import { userService } from "@/lib/user-service"
 import { UserResponse } from "@/lib/user-types"
 
@@ -33,8 +34,24 @@ export function BatchActionsToolbar({
   onBatchComplete, 
   onClearSelection 
 }: BatchActionsToolbarProps) {
-  const [isDeleting, setIsDeleting] = useState(false)
-  const [isRestoring, setIsRestoring] = useState(false)
+  // 使用React Query mutation hooks
+  const batchDeleteMutation = useBatchDeleteUsers({
+    onSuccess: (data) => {
+      if (data.code === 0) {
+        onBatchComplete()
+        onClearSelection()
+      }
+    }
+  })
+  
+  const batchRestoreMutation = useBatchRestoreUsers({
+    onSuccess: (data) => {
+      if (data.code === 0) {
+        onBatchComplete()
+        onClearSelection()
+      }
+    }
+  })
 
   if (selectedUsers.length === 0) {
     return null
@@ -45,54 +62,14 @@ export function BatchActionsToolbar({
 
   const handleBatchDelete = async () => {
     if (activeUsers.length === 0) return
-
-    try {
-      setIsDeleting(true)
-      const userIds = activeUsers.map(user => user.id)
-      
-      const response = await userService.batchDeleteUsers(userIds)
-      
-      if (response.code === 0) {
-        console.log('批量删除成功')
-        onBatchComplete()
-        onClearSelection()
-        // TODO: 添加成功提示
-        alert(`成功删除 ${userIds.length} 个用户`)
-      } else {
-        throw new Error(response.message || '批量删除失败')
-      }
-    } catch (error) {
-      console.error('批量删除失败:', error)
-      alert(error instanceof Error ? error.message : '批量删除失败')
-    } finally {
-      setIsDeleting(false)
-    }
+    const userIds = activeUsers.map(user => user.id)
+    batchDeleteMutation.mutate(userIds)
   }
 
   const handleBatchRestore = async () => {
     if (deletedUsers.length === 0) return
-
-    try {
-      setIsRestoring(true)
-      const userIds = deletedUsers.map(user => user.id)
-      
-      const response = await userService.batchRestoreUsers(userIds)
-      
-      if (response.code === 0) {
-        console.log('批量恢复成功')
-        onBatchComplete()
-        onClearSelection()
-        // TODO: 添加成功提示
-        alert(`成功恢复 ${userIds.length} 个用户`)
-      } else {
-        throw new Error(response.message || '批量恢复失败')
-      }
-    } catch (error) {
-      console.error('批量恢复失败:', error)
-      alert(error instanceof Error ? error.message : '批量恢复失败')
-    } finally {
-      setIsRestoring(false)
-    }
+    const userIds = deletedUsers.map(user => user.id)
+    batchRestoreMutation.mutate(userIds)
   }
 
   return (
@@ -154,10 +131,10 @@ export function BatchActionsToolbar({
               <Button 
                 variant="outline" 
                 size="sm" 
-                disabled={isRestoring}
+                disabled={batchRestoreMutation.isPending}
                 className="text-green-600 border-green-200 hover:bg-green-50"
               >
-                {isRestoring ? (
+                {batchRestoreMutation.isPending ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                   <RotateCcw className="mr-2 h-4 w-4" />
@@ -224,9 +201,9 @@ export function BatchActionsToolbar({
               <Button 
                 variant="destructive" 
                 size="sm" 
-                disabled={isDeleting}
+                disabled={batchDeleteMutation.isPending}
               >
-                {isDeleting ? (
+                {batchDeleteMutation.isPending ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                   <Trash2 className="mr-2 h-4 w-4" />

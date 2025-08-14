@@ -20,11 +20,23 @@ import { Badge } from '@/components/ui/badge'
 import { CalendarDays, Search, Filter, X } from 'lucide-react'
 import { orderService } from '@/lib/order-service'
 
-interface OrderFiltersProps {
-  onFiltersChange: (filters: any) => void
+interface OrderFilters {
+  status: string
+  order_type: string
+  payment_method: string
+  payment_gateway: string
+  search: string
+  start_date: string
+  end_date: string
 }
 
-export function OrderFilters({ onFiltersChange }: OrderFiltersProps) {
+interface OrderFiltersProps {
+  onFiltersChange: (filters: OrderFilters) => void
+  isLoading?: boolean
+  hasError?: boolean
+}
+
+export function OrderFilters({ onFiltersChange, isLoading = false, hasError = false }: OrderFiltersProps) {
   const [filters, setFilters] = useState({
     status: 'all',
     order_type: 'all',
@@ -95,13 +107,17 @@ export function OrderFilters({ onFiltersChange }: OrderFiltersProps) {
           {/* 订单状态 */}
           <div className="space-y-2">
             <label className="text-sm font-medium">订单状态</label>
-            <Select value={filters.status} onValueChange={(value) => handleFilterChange('status', value)}>
+            <Select 
+              value={filters.status} 
+              onValueChange={(value) => handleFilterChange('status', value)}
+              disabled={isLoading || hasError}
+            >
               <SelectTrigger>
-                <SelectValue placeholder="全部状态" />
+                <SelectValue placeholder={hasError ? "数据加载失败" : isLoading ? "加载中..." : "全部状态"} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">全部状态</SelectItem>
-                {orderService.getOrderStatuses().map((status) => (
+                {!hasError && orderService.getOrderStatuses().map((status) => (
                   <SelectItem key={status.value} value={status.value}>
                     {status.label}
                   </SelectItem>
@@ -113,13 +129,17 @@ export function OrderFilters({ onFiltersChange }: OrderFiltersProps) {
           {/* 订单类型 */}
           <div className="space-y-2">
             <label className="text-sm font-medium">订单类型</label>
-            <Select value={filters.order_type} onValueChange={(value) => handleFilterChange('order_type', value)}>
+            <Select 
+              value={filters.order_type} 
+              onValueChange={(value) => handleFilterChange('order_type', value)}
+              disabled={isLoading || hasError}
+            >
               <SelectTrigger>
-                <SelectValue placeholder="全部类型" />
+                <SelectValue placeholder={hasError ? "数据加载失败" : isLoading ? "加载中..." : "全部类型"} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">全部类型</SelectItem>
-                {orderService.getOrderTypes().map((type) => (
+                {!hasError && orderService.getOrderTypes().map((type) => (
                   <SelectItem key={type.value} value={type.value}>
                     {type.label}
                   </SelectItem>
@@ -131,13 +151,17 @@ export function OrderFilters({ onFiltersChange }: OrderFiltersProps) {
           {/* 支付方式 */}
           <div className="space-y-2">
             <label className="text-sm font-medium">支付方式</label>
-            <Select value={filters.payment_method} onValueChange={(value) => handleFilterChange('payment_method', value)}>
+            <Select 
+              value={filters.payment_method} 
+              onValueChange={(value) => handleFilterChange('payment_method', value)}
+              disabled={isLoading || hasError}
+            >
               <SelectTrigger>
-                <SelectValue placeholder="全部方式" />
+                <SelectValue placeholder={hasError ? "数据加载失败" : isLoading ? "加载中..." : "全部方式"} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">全部方式</SelectItem>
-                {orderService.getPaymentMethods().map((method) => (
+                {!hasError && orderService.getPaymentMethods().map((method) => (
                   <SelectItem key={method.value} value={method.value}>
                     {method.label}
                   </SelectItem>
@@ -149,13 +173,17 @@ export function OrderFilters({ onFiltersChange }: OrderFiltersProps) {
           {/* 支付网关 */}
           <div className="space-y-2">
             <label className="text-sm font-medium">支付网关</label>
-            <Select value={filters.payment_gateway} onValueChange={(value) => handleFilterChange('payment_gateway', value)}>
+            <Select 
+              value={filters.payment_gateway} 
+              onValueChange={(value) => handleFilterChange('payment_gateway', value)}
+              disabled={isLoading || hasError}
+            >
               <SelectTrigger>
-                <SelectValue placeholder="全部网关" />
+                <SelectValue placeholder={hasError ? "数据加载失败" : isLoading ? "加载中..." : "全部网关"} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">全部网关</SelectItem>
-                {orderService.getPaymentGateways().map((gateway) => (
+                {!hasError && orderService.getPaymentGateways().map((gateway) => (
                   <SelectItem key={gateway.value} value={gateway.value}>
                     {gateway.label}
                   </SelectItem>

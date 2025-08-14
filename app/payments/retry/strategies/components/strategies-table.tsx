@@ -48,11 +48,19 @@ import {
   AlertTriangle,
   CheckCircle,
   Play,
-  Pause
+  Pause,
+  Plus
 } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { useStrategyManagement } from '@/hooks/use-retry-strategies'
+import { usePaymentRetryStrategies } from '@/hooks/queries/use-payments'
+import { 
+  useDeleteRetryStrategy,
+  useBatchEnableStrategies,
+  useBatchDisableStrategies,
+  useBatchDeleteStrategies,
+  useUpdateRetryStrategy
+} from '@/hooks/mutations/use-payment-mutations'
 import { paymentRetryService } from '@/lib/payment-retry-service'
 import type { RetryStrategy, RetryStrategyTableRow } from '@/lib/payment-retry-types'
 import { cn } from '@/lib/utils'
@@ -264,14 +272,28 @@ function StrategyRow({
 
 export function StrategiesTable() {
   const router = useRouter()
+  
+  // 使用 React Query 获取策略数据
   const { 
-    strategies, 
-    total, 
-    loading, 
+    data: strategiesResponse, 
+    isLoading, 
     error, 
-    refreshStrategies,
-    batchOperationAndRefresh 
-  } = useStrategyManagement()
+    refetch 
+  } = usePaymentRetryStrategies({
+    enabled: true
+  })
+  
+  // 策略变更 Mutations
+  const deleteStrategyMutation = useDeleteRetryStrategy()
+  const updateStrategyMutation = useUpdateRetryStrategy()
+  const batchEnableStrategies = useBatchEnableStrategies()
+  const batchDisableStrategies = useBatchDisableStrategies()
+  const batchDeleteStrategies = useBatchDeleteStrategies()
+  
+  // 从响应中提取数据
+  const strategies = strategiesResponse?.data?.items || []
+  const total = strategiesResponse?.data?.total || 0
+  const loading = isLoading
 
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -295,37 +317,39 @@ export function StrategiesTable() {
     if (selectedIds.length === 0) return
 
     try {
-      const result = await batchOperationAndRefresh({
-        action: action as 'enable' | 'disable' | 'delete',
-        ids: selectedIds
-      })
-
-      if (result.success) {
-        toast.success(`批量${action === 'enable' ? '启用' : action === 'disable' ? '禁用' : '删除'}成功`)
-        setSelectedIds([])
-      } else {
-        toast.error(`批量操作失败: ${result.error}`)
+      switch (action) {
+        case 'enable':
+          await batchEnableStrategies.mutateAsync(selectedIds)
+          break
+        case 'disable':
+          await batchDisableStrategies.mutateAsync(selectedIds)
+          break
+        case 'delete':
+          await batchDeleteStrategies.mutateAsync(selectedIds)
+          break
+        default:
+          toast.error('未知的操作类型')
+          return
       }
+      
+      // 操作成功后清空选择
+      setSelectedIds([])
     } catch (error) {
-      toast.error('批量操作失败')
+      // 错误处理由 mutation hooks 内部处理
+      console.error('批量操作失败:', error)
     }
   }
 
   // 切换策略状态
   const handleToggleStatus = async (strategy: RetryStrategy, enabled: boolean) => {
     try {
-      const result = await batchOperationAndRefresh({
-        action: enabled ? 'enable' : 'disable',
-        ids: [strategy.id]
+      await updateStrategyMutation.mutateAsync({
+        id: strategy.id,
+        data: { enabled }
       })
-
-      if (result.success) {
-        toast.success(`策略${enabled ? '启用' : '禁用'}成功`)
-      } else {
-        toast.error(`操作失败: ${result.error}`)
-      }
     } catch (error) {
-      toast.error('操作失败')
+      // 错误处理由 mutation hook 内部处理
+      console.error('切换策略状态失败:', error)
     }
   }
 
@@ -339,18 +363,12 @@ export function StrategiesTable() {
     if (!strategyToDelete) return
 
     try {
-      const result = await batchOperationAndRefresh({
-        action: 'delete',
-        ids: [strategyToDelete.id]
-      })
-
-      if (result.success) {
-        toast.success('策略删除成功')
-      } else {
-        toast.error(`删除失败: ${result.error}`)
-      }
+      await deleteStrategyMutation.mutateAsync(strategyToDelete.id)
+      // 删除成功后刷新列表
+      setSelectedIds(prev => prev.filter(id => id !== strategyToDelete.id))
     } catch (error) {
-      toast.error('删除失败')
+      // 错误处理由mutation内部处理
+      console.error('删除策略失败:', error)
     } finally {
       setDeleteDialogOpen(false)
       setStrategyToDelete(null)
@@ -374,7 +392,7 @@ export function StrategiesTable() {
           <AlertTriangle className="h-8 w-8 text-red-500 mb-2" />
           <p className="text-sm font-medium text-red-600 mb-2">加载策略列表失败</p>
           <p className="text-xs text-muted-foreground mb-4">{error}</p>
-          <Button onClick={refreshStrategies} size="sm">
+          <Button onClick={() => refetch()} size="sm">
             重试
           </Button>
         </CardContent>

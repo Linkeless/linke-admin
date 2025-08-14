@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useMemo } from 'react'
 import { DataTable } from '@/components/ui/data-table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -28,16 +28,14 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 
+import { useInvoices, useInvoiceStatistics } from '@/hooks/queries/use-invoices'
+import { useBulkDownloadInvoices } from '@/hooks/mutations/use-finance-mutations'
 import { Invoice, InvoiceQueryParams, InvoiceStatistics, InvoiceStatus } from '@/lib/invoice-types'
 import { invoiceService } from '@/lib/invoice-service'
 import { createColumns } from './columns'
 import { BulkActionsDialog } from './components'
 
 export default function InvoicesPage() {
-  const [invoices, setInvoices] = useState<Invoice[]>([])
-  const [statistics, setStatistics] = useState<InvoiceStatistics | null>(null)
-  const [statisticsLoading, setStatisticsLoading] = useState(true)
-  const [totalCount, setTotalCount] = useState(0)
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize] = useState(10)
   const [searchQuery, setSearchQuery] = useState('')
@@ -46,105 +44,70 @@ export default function InvoicesPage() {
   const [showBulkActions, setShowBulkActions] = useState(false)
   const [selectedInvoices, setSelectedInvoices] = useState<Invoice[]>([])
 
-  // 获取发票列表
-  const fetchInvoices = useCallback(async () => {
-    try {
-      
-      const params: InvoiceQueryParams = {
-        page: currentPage,
-        page_size: pageSize,
-        sort_by: 'created_at',
-        sort_order: 'desc',
-      }
-
-      if (searchQuery.trim()) {
-        params.search = searchQuery.trim()
-      }
-
-      if (statusFilter !== 'all') {
-        params.status = statusFilter as InvoiceStatus
-      }
-
-      // 日期筛选
-      if (dateFilter !== 'all') {
-        const now = new Date()
-        let dateFrom: Date
-        
-        switch (dateFilter) {
-          case 'today':
-            dateFrom = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-            break
-          case 'week':
-            dateFrom = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-            break
-          case 'month':
-            dateFrom = new Date(now.getFullYear(), now.getMonth(), 1)
-            break
-          case 'quarter':
-            dateFrom = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1)
-            break
-          default:
-            dateFrom = new Date(now.getFullYear(), 0, 1)
-        }
-        
-        params.date_from = dateFrom.toISOString().split('T')[0]
-      }
-
-      const response = await invoiceService.getInvoices(params)
-      
-      // 调试信息
-      console.log('API Response:', response)
-      
-      if (response.code === 0) {
-        // 处理不同的响应数据结构
-        if (response.data && response.data.items) {
-          // 分页响应格式
-          setInvoices(response.data.items || [])
-          setTotalCount(response.data.total || 0)
-          console.log('Loaded paginated invoices:', response.data.items?.length, 'total:', response.data.total)
-        } else if (Array.isArray(response.data)) {
-          // 直接数组响应格式
-          setInvoices(response.data || [])
-          setTotalCount(response.data?.length || 0)
-          console.log('Loaded array invoices:', response.data?.length)
-        } else {
-          // 空数据或其他格式
-          setInvoices([])
-          setTotalCount(0)
-          console.log('No invoices data or unsupported format:', response.data)
-        }
-      } else {
-        throw new Error(response.message || '获取数据失败')
-      }
-    } catch (error) {
-      console.error('获取发票列表失败:', error)
-      toast.error('获取发票列表失败，请稍后重试')
-      setInvoices([])
-      setTotalCount(0)
+  // 查询参数
+  const queryParams = useMemo<InvoiceQueryParams>(() => {
+    const params: InvoiceQueryParams = {
+      page: currentPage,
+      page_size: pageSize,
+      sort_by: 'created_at',
+      sort_order: 'desc',
     }
+
+    if (searchQuery.trim()) {
+      params.search = searchQuery.trim()
+    }
+
+    if (statusFilter !== 'all') {
+      params.status = statusFilter as InvoiceStatus
+    }
+
+    // 日期筛选
+    if (dateFilter !== 'all') {
+      const now = new Date()
+      let dateFrom: Date
+      
+      switch (dateFilter) {
+        case 'today':
+          dateFrom = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+          break
+        case 'week':
+          dateFrom = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+          break
+        case 'month':
+          dateFrom = new Date(now.getFullYear(), now.getMonth(), 1)
+          break
+        case 'quarter':
+          dateFrom = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1)
+          break
+        default:
+          dateFrom = new Date(now.getFullYear(), 0, 1)
+      }
+      
+      params.date_from = dateFrom.toISOString().split('T')[0]
+    }
+
+    return params
   }, [currentPage, pageSize, searchQuery, statusFilter, dateFilter])
 
-  // 获取统计信息
-  const fetchStatistics = useCallback(async () => {
-    try {
-      setStatisticsLoading(true)
-      const response = await invoiceService.getInvoiceStatistics()
-      
-      console.log('Statistics Response:', response)
-      
-      if (response.code === 0) {
-        setStatistics(response.data)
-        console.log('Loaded statistics:', response.data)
-      } else {
-        throw new Error(response.message)
-      }
-    } catch (error) {
-      console.error('获取统计信息失败:', error)
-      // 不显示错误提示，统计信息是非关键功能
-    } finally {
-      setStatisticsLoading(false)
-    }
-  }, [])
+  // 使用 React Query hooks
+  const { 
+    data: invoicesResponse, 
+    isLoading,
+    refetch
+  } = useInvoices(queryParams)
+
+  const { 
+    data: statisticsResponse, 
+    isLoading: statisticsLoading 
+  } = useInvoiceStatistics()
+
+  // 提取数据
+  const invoices = invoicesResponse?.data?.items || []
+  const totalCount = invoicesResponse?.data?.total || 0
+  const statistics = statisticsResponse?.data
+
+  // 批量下载 mutation
+  const bulkDownloadMutation = useBulkDownloadInvoices()
 
   // 批量下载选中的发票
   const handleBulkDownload = useCallback(async (invoicesForDownload: Invoice[] = selectedInvoices) => {
@@ -153,21 +116,12 @@ export default function InvoicesPage() {
       return
     }
 
-    try {
-      const invoiceIds = invoicesForDownload.map(invoice => invoice.id)
-      const blob = await invoiceService.bulkDownloadInvoices({
-        invoice_ids: invoiceIds,
-        format: 'zip'
-      })
-      
-      const filename = `invoices-${new Date().toISOString().split('T')[0]}.zip`
-      invoiceService.downloadFile(blob, filename)
-      toast.success(`成功下载 ${invoicesForDownload.length} 张发票`)
-    } catch (error) {
-      console.error('批量下载失败:', error)
-      toast.error('批量下载失败，请稍后重试')
-    }
-  }, [selectedInvoices])
+    const invoiceIds = invoicesForDownload.map(invoice => invoice.id)
+    bulkDownloadMutation.mutate({
+      invoice_ids: invoiceIds,
+      format: 'zip'
+    })
+  }, [selectedInvoices, bulkDownloadMutation])
 
   // 使用ref来存储选择处理函数，避免重新渲染
   const onSelectionChangeRef = useRef<(selectedInvoices: Invoice[]) => void>()
@@ -191,9 +145,8 @@ export default function InvoicesPage() {
 
   // 发票更新回调
   const handleInvoiceUpdated = useCallback(() => {
-    fetchInvoices()
-    fetchStatistics()
-  }, [fetchInvoices, fetchStatistics])
+    refetch()
+  }, [refetch])
 
   // 搜索处理
   const handleSearch = (value: string) => {
@@ -212,13 +165,6 @@ export default function InvoicesPage() {
     setCurrentPage(1)
   }
 
-  useEffect(() => {
-    fetchInvoices()
-  }, [fetchInvoices])
-
-  useEffect(() => {
-    fetchStatistics()
-  }, [fetchStatistics])
 
   const columns = createColumns({ onInvoiceUpdated: handleInvoiceUpdated })
 
@@ -439,6 +385,7 @@ export default function InvoicesPage() {
           <DataTable
             columns={columns}
             data={invoices || []}
+            loading={isLoading}
             searchKey="invoice_number"
             searchPlaceholder="搜索发票号..."
             onSelectionChange={handleBulkActions}

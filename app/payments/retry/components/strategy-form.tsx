@@ -24,7 +24,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Plus, Minus, Clock, AlertTriangle, Info } from 'lucide-react'
 
-import { useStrategyOptions } from '@/hooks/use-retry-strategies'
+import { useErrorConditions, useRetryPaymentMethods } from '@/hooks/queries/use-payments'
 import { paymentRetryService } from '@/lib/payment-retry-service'
 import type { RetryStrategy, CreateRetryStrategyRequest, UpdateRetryStrategyRequest } from '@/lib/payment-retry-types'
 import { cn } from '@/lib/utils'
@@ -50,13 +50,15 @@ interface StrategyFormProps {
 }
 
 export function StrategyForm({ strategy, onSubmit, onCancel, loading }: StrategyFormProps) {
-  const { 
-    errorConditions, 
-    paymentMethods, 
-    loading: optionsLoading,
-    getRetryIntervalPresets,
-    formatRetryInterval 
-  } = useStrategyOptions()
+  const { data: errorConditionsData, isLoading: errorConditionsLoading } = useErrorConditions()
+  const { data: paymentMethodsData, isLoading: paymentMethodsLoading } = useRetryPaymentMethods()
+  
+  const errorConditions = errorConditionsData?.data || []
+  const paymentMethods = paymentMethodsData?.data || []
+  const optionsLoading = errorConditionsLoading || paymentMethodsLoading
+  
+  const getRetryIntervalPresets = () => paymentRetryService.getRetryIntervalPresets()
+  const formatRetryInterval = (seconds: number) => paymentRetryService.formatRetryInterval(seconds)
 
   const [selectedPreset, setSelectedPreset] = useState<string>('')
   const [validationErrors, setValidationErrors] = useState<string[]>([])

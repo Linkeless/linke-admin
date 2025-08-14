@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from "react"
+import { useState, useCallback } from "react"
 import {
   Card,
   CardContent,
@@ -11,69 +11,48 @@ import {
 import { Ticket } from "lucide-react"
 import { PageHeader } from "@/components/layout/page-header"
 
-import { couponService } from "@/lib/coupon-service"
 import { CouponResponse } from "@/lib/coupon-types"
 import { createColumns } from "./columns"
 import { DataTable } from "@/components/ui/data-table"
 import { CreateCouponDialog } from "@/components/finance/coupons/create-coupon-dialog"
 import { EditCouponDialog } from "@/components/finance/coupons/edit-coupon-dialog"
+import { useCoupons } from "@/hooks/queries/use-coupons"
+import { useQueryClient } from "@tanstack/react-query"
+import { queryKeys } from "@/lib/query-keys"
 
 export default function CouponsPage() {
-  const [coupons, setCoupons] = useState<CouponResponse[]>([])
-  const [loading, setLoading] = useState(true)
-  
   // 分页状态 - 使用基于页码的分页（shadcn/ui标准）
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
-  const [totalItems, setTotalItems] = useState(0)
 
   // 编辑对话框状态
   const [editingCoupon, setEditingCoupon] = useState<CouponResponse | null>(null)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
 
-  const loadData = useCallback(async (page: number = 1, limit: number = 10) => {
-    try {
-      setLoading(true)
-      
-      // 将页码转换为offset
-      const offset = (page - 1) * limit
-      
-      const response = await couponService.getCoupons({
-        offset: offset,
-        limit: limit,
-        sort_by: 'created_at',
-        sort_order: 'desc',
-      })
-      
-      console.log('Coupons API Response:', response) // 调试信息
-      
-      if (response.code === 0 && response.data) {
-        setCoupons(response.data.items || [])
-        setTotalItems(response.data.pagination.total || 0)
-        setCurrentPage(page)
-      } else {
-        console.error('API返回错误:', response)
-        setCoupons([])
-        setTotalItems(0)
-      }
-    } catch (error) {
-      console.error('加载优惠码列表失败:', error)
-      setCoupons([])
-      setTotalItems(0)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  // 使用 React Query 获取数据
+  const queryClient = useQueryClient()
+  const offset = (currentPage - 1) * pageSize
+  
+  const { data, isLoading, error, refetch } = useCoupons({
+    offset: offset,
+    limit: pageSize,
+    sort_by: 'created_at',
+    sort_order: 'desc',
+  })
+
+  // 从响应中提取数据
+  const coupons = data?.data?.items || []
+  const totalItems = data?.data?.pagination?.total || 0
 
   const handleCouponCreated = useCallback(() => {
-    // 重新加载优惠码列表
-    loadData(currentPage, pageSize)
-  }, [loadData, currentPage, pageSize])
+    // 使用 React Query 的缓存失效机制重新获取数据
+    queryClient.invalidateQueries({ queryKey: queryKeys.coupons.list({}) })
+  }, [queryClient])
 
   const handleCouponUpdated = useCallback(() => {
-    // 重新加载优惠码列表
-    loadData(currentPage, pageSize)
-  }, [loadData, currentPage, pageSize])
+    // 使用 React Query 的缓存失效机制重新获取数据
+    queryClient.invalidateQueries({ queryKey: queryKeys.coupons.list({}) })
+  }, [queryClient])
 
   const handleEdit = useCallback((coupon: CouponResponse) => {
     setEditingCoupon(coupon)
@@ -84,10 +63,6 @@ export default function CouponsPage() {
     setEditDialogOpen(false)
     setEditingCoupon(null)
   }, [])
-
-  useEffect(() => {
-    loadData(currentPage, pageSize)
-  }, [loadData, currentPage, pageSize])
 
   return (
     <div className="flex flex-col">
@@ -111,9 +86,19 @@ export default function CouponsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {loading ? (
+              {isLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <p className="text-muted-foreground">加载中...</p>
+                </div>
+              ) : error ? (
+                <div className="flex flex-col items-center justify-center py-8 space-y-2">
+                  <p className="text-destructive">加载失败</p>
+                  <button 
+                    onClick={() => refetch()} 
+                    className="text-sm text-primary hover:underline"
+                  >
+                    点击重试
+                  </button>
                 </div>
               ) : (
                 <>
@@ -154,9 +139,8 @@ export default function CouponsPage() {
                       if (newPageSize !== pageSize) {
                         setPageSize(newPageSize)
                         setCurrentPage(1)
-                        loadData(1, newPageSize)
                       } else if (newPage !== currentPage) {
-                        loadData(newPage, pageSize)
+                        setCurrentPage(newPage)
                       }
                     }}
                   />

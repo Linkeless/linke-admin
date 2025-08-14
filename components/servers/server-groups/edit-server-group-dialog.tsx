@@ -25,8 +25,9 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 
-import { serverGroupService } from "@/lib/server-group-service"
 import { ServerGroupResponse, UpdateServerGroupRequest } from "@/lib/server-group-types"
+import { useUpdateServerGroup } from "@/hooks/mutations/use-server-mutations"
+import { serverQueryUtils } from "@/hooks/queries/use-servers"
 
 const formSchema = z.object({
   name: z.string().min(1, "服务器组名称不能为空").max(255, "服务器组名称不能超过255个字符"),
@@ -41,7 +42,16 @@ interface EditServerGroupDialogProps {
 
 export function EditServerGroupDialog({ serverGroup, onServerGroupUpdated }: EditServerGroupDialogProps) {
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
+  
+  // 使用 React Query mutation
+  const updateServerGroupMutation = useUpdateServerGroup({
+    onSuccess: (data) => {
+      if (data.code === 0) {
+        setOpen(false)
+        onServerGroupUpdated()
+      }
+    }
+  })
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -58,37 +68,19 @@ export function EditServerGroupDialog({ serverGroup, onServerGroupUpdated }: Edi
   }, [serverGroup, form])
 
   const handleSubmit = async (data: FormData) => {
-    try {
-      setLoading(true)
-      
-      // 验证表单数据
-      const validationErrors = serverGroupService.validateServerGroupConfig(data)
-      if (validationErrors.length > 0) {
-        alert(`表单验证失败：\n${validationErrors.join('\n')}`)
-        return
-      }
-
-      const updateData: UpdateServerGroupRequest = {
-        name: data.name.trim(),
-      }
-
-      console.log('更新服务器组数据:', updateData)
-      const response = await serverGroupService.updateServerGroup(serverGroup.id, updateData)
-      
-      if (response.code === 0) {
-        console.log('服务器组更新成功:', response.data)
-        setOpen(false)
-        onServerGroupUpdated()
-      } else {
-        throw new Error(response.message || '更新失败')
-      }
-    } catch (error: unknown) {
-      console.error('更新服务器组失败:', error)
-      const errorMessage = error instanceof Error ? error.message : '未知错误'
-      alert(`更新服务器组失败: ${errorMessage}`)
-    } finally {
-      setLoading(false)
+    // 验证表单数据
+    const validationErrors = serverQueryUtils.validateServerGroupConfig(data)
+    if (validationErrors.length > 0) {
+      alert(`表单验证失败：\n${validationErrors.join('\n')}`)
+      return
     }
+
+    const updateData: UpdateServerGroupRequest = {
+      name: data.name.trim(),
+    }
+
+    // 使用 mutation 更新服务器组
+    updateServerGroupMutation.mutate({ id: serverGroup.id, data: updateData })
   }
 
   const handleFormAction = async (formData: FormData) => {
@@ -137,17 +129,17 @@ export function EditServerGroupDialog({ serverGroup, onServerGroupUpdated }: Edi
                 type="button"
                 variant="outline"
                 onClick={() => setOpen(false)}
-                disabled={loading}
+                disabled={updateServerGroupMutation.isPending}
                 className="flex-1"
               >
                 取消
               </Button>
               <Button 
                 type="submit" 
-                disabled={loading} 
+                disabled={updateServerGroupMutation.isPending} 
                 className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {updateServerGroupMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 保存
               </Button>
             </DialogFooter>

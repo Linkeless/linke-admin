@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useMemo } from 'react'
 import {
   Card,
   CardContent,
@@ -15,41 +15,45 @@ import {
   AlertCircle,
   Ban
 } from 'lucide-react'
-import { orderService } from '@/lib/order-service'
-import { OrderStatsResponse } from '@/lib/order-types'
+import { useOrderAnalytics } from '@/hooks/queries/use-orders'
 
 export function OrderStatsCards() {
-  const [stats, setStats] = useState<OrderStatsResponse | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  const loadStats = async () => {
-    try {
-      setLoading(true)
-      // 使用当月的日期范围
-      const now = new Date()
-      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
-      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-      
-      const response = await orderService.getOrderAnalytics({
-        from_date: firstDay.toISOString().split('T')[0],
-        to_date: lastDay.toISOString().split('T')[0]
-      })
-      
-      if (response.code === 0 && response.data) {
-        setStats(response.data)
-      }
-    } catch (error) {
-      console.error('加载订单统计失败:', error)
-    } finally {
-      setLoading(false)
+  // 使用当月的日期范围
+  const queryParams = useMemo(() => {
+    const now = new Date()
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    
+    return {
+      from_date: firstDay.toISOString().split('T')[0],
+      to_date: lastDay.toISOString().split('T')[0]
     }
-  }
-
-  useEffect(() => {
-    loadStats()
   }, [])
 
-  if (loading) {
+  // 使用 React Query hook with unified error handling
+  const { data: statsResponse, isLoading, error } = useOrderAnalytics(queryParams)
+  const stats = statsResponse?.data
+
+  // 错误状态统一处理
+  if (error) {
+    return (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {[...Array(4)].map((_, i) => (
+          <Card key={i} className="border-red-200">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-red-600">数据获取失败</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-400">--</div>
+              <p className="text-xs text-red-500">请稍后重试</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    )
+  }
+
+  if (isLoading) {
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {[...Array(4)].map((_, i) => (

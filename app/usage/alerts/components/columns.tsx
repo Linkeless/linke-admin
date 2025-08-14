@@ -8,8 +8,79 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { MoreHorizontal, Eye, Check, X, Pause } from 'lucide-react';
 import { AlertTableRow } from '@/lib/usage-types';
 import { AlertStatusBadge, AlertSeverityBadge } from './alert-status-badge';
+import { useAcknowledgeAlert, useResolveAlert, useSuppressAlert } from "@/hooks/queries/use-alerts";
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
+
+// 告警操作组件
+function AlertActionsCell({ alert }: { alert: AlertTableRow }) {
+  const acknowledgeAlert = useAcknowledgeAlert()
+  const resolveAlert = useResolveAlert()
+  const suppressAlert = useSuppressAlert()
+
+  const handleAcknowledge = () => {
+    acknowledgeAlert.mutate({ alertId: alert.id })
+  }
+
+  const handleResolve = () => {
+    resolveAlert.mutate({ alertId: alert.id })
+  }
+
+  const handleSuppress = () => {
+    suppressAlert.mutate({ alertId: alert.id, duration: 60 }) // 抑制1小时
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="h-8 w-8 p-0">
+          <span className="sr-only">Open menu</span>
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuLabel>操作</DropdownMenuLabel>
+        <DropdownMenuItem
+          onClick={() => {
+            // 查看详情
+            window.location.href = `/usage/alerts/${alert.id}`;
+          }}
+        >
+          <Eye className="mr-2 h-4 w-4" />
+          查看详情
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        {alert.status === 'active' && (
+          <DropdownMenuItem
+            onClick={handleAcknowledge}
+            disabled={acknowledgeAlert.isPending}
+          >
+            <Check className="mr-2 h-4 w-4" />
+            确认告警
+          </DropdownMenuItem>
+        )}
+        {(alert.status === 'active' || alert.status === 'acknowledged') && (
+          <DropdownMenuItem
+            onClick={handleResolve}
+            disabled={resolveAlert.isPending}
+          >
+            <X className="mr-2 h-4 w-4" />
+            解决告警
+          </DropdownMenuItem>
+        )}
+        {alert.status === 'active' && (
+          <DropdownMenuItem
+            onClick={handleSuppress}
+            disabled={suppressAlert.isPending}
+          >
+            <Pause className="mr-2 h-4 w-4" />
+            抑制告警
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
 
 export const alertColumns: ColumnDef<AlertTableRow>[] = [
   {
@@ -141,63 +212,7 @@ export const alertColumns: ColumnDef<AlertTableRow>[] = [
     enableHiding: false,
     cell: ({ row }) => {
       const alert = row.original;
-
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>操作</DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={() => {
-                // 查看详情
-                window.location.href = `/usage/alerts/${alert.id}`;
-              }}
-            >
-              <Eye className="mr-2 h-4 w-4" />
-              查看详情
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            {alert.status === 'active' && (
-              <DropdownMenuItem
-                onClick={() => {
-                  // TODO: 实现确认告警
-                  console.log('Acknowledge alert:', alert.id);
-                }}
-              >
-                <Check className="mr-2 h-4 w-4" />
-                确认告警
-              </DropdownMenuItem>
-            )}
-            {(alert.status === 'active' || alert.status === 'acknowledged') && (
-              <DropdownMenuItem
-                onClick={() => {
-                  // TODO: 实现解决告警
-                  console.log('Resolve alert:', alert.id);
-                }}
-              >
-                <X className="mr-2 h-4 w-4" />
-                解决告警
-              </DropdownMenuItem>
-            )}
-            {alert.status === 'active' && (
-              <DropdownMenuItem
-                onClick={() => {
-                  // TODO: 实现抑制告警
-                  console.log('Suppress alert:', alert.id);
-                }}
-              >
-                <Pause className="mr-2 h-4 w-4" />
-                抑制告警
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
+      return <AlertActionsCell alert={alert} />;
     },
   },
 ];

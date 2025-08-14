@@ -17,7 +17,7 @@ import {
   AlertTriangle
 } from 'lucide-react'
 
-import { useStrategyManagement } from '@/hooks/use-retry-strategies'
+import { usePaymentRetryStrategies } from '@/hooks/queries/use-payments'
 import { cn } from '@/lib/utils'
 
 interface StatCardProps {
@@ -95,7 +95,17 @@ function StatCard({
 }
 
 export function StrategiesStats() {
-  const { strategies, loading, error } = useStrategyManagement()
+  // 使用 React Query 获取策略数据
+  const { 
+    data: strategiesResponse, 
+    isLoading, 
+    error 
+  } = usePaymentRetryStrategies({
+    enabled: true
+  })
+  
+  const strategies = strategiesResponse?.data?.items || []
+  const loading = isLoading
 
   if (loading && strategies.length === 0) {
     return (

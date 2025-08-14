@@ -12,7 +12,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { CouponForm } from './coupon-form'
-import { couponService } from '@/lib/coupon-service'
+import { useCreateCoupon } from '@/hooks/mutations/use-finance-mutations'
 import { CreateCouponRequest } from '@/lib/coupon-types'
 
 interface CreateCouponDialogProps {
@@ -21,25 +21,17 @@ interface CreateCouponDialogProps {
 
 export function CreateCouponDialog({ onCouponCreated }: CreateCouponDialogProps) {
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
+  
+  // 使用 React Query mutation
+  const createCouponMutation = useCreateCoupon({
+    onSuccess: () => {
+      setOpen(false)
+      onCouponCreated()
+    }
+  })
 
   const handleSubmit = async (data: CreateCouponRequest) => {
-    try {
-      setLoading(true)
-      const response = await couponService.createCoupon(data)
-      
-      if (response.code === 0) {
-        setOpen(false)
-        onCouponCreated()
-      } else {
-        throw new Error(response.message || '创建优惠码失败')
-      }
-    } catch (error) {
-      console.error('创建优惠码失败:', error)
-      throw error
-    } finally {
-      setLoading(false)
-    }
+    createCouponMutation.mutate(data)
   }
 
   return (
@@ -59,7 +51,7 @@ export function CreateCouponDialog({ onCouponCreated }: CreateCouponDialogProps)
         </DialogHeader>
         <CouponForm
           onSubmit={handleSubmit}
-          loading={loading}
+          loading={createCouponMutation.isPending}
           onCancel={() => setOpen(false)}
         />
       </DialogContent>

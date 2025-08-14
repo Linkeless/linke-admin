@@ -1,5 +1,6 @@
 // 价格显示组件 - 使用shadcn/ui组件
 
+import React, { useMemo } from 'react'
 import { CURRENCY_CONFIG, BILLING_CYCLE_CONFIG, type Currency, type BillingCycle } from '@/lib/subscription-types'
 
 interface PriceDisplayProps {
@@ -10,35 +11,48 @@ interface PriceDisplayProps {
   className?: string
 }
 
-export function PriceDisplay({ 
+export const PriceDisplay = React.memo(function PriceDisplay({ 
   price, 
   currency, 
   billingCycle, 
   setupFee, 
   className 
 }: PriceDisplayProps) {
-  const currencyConfig = CURRENCY_CONFIG[currency] || CURRENCY_CONFIG.USD
-  const cycleConfig = billingCycle ? BILLING_CYCLE_CONFIG[billingCycle] : null
+  const currencyConfig = useMemo(() => 
+    CURRENCY_CONFIG[currency] || CURRENCY_CONFIG.USD, 
+    [currency]
+  )
   
-  const formatPrice = (amount: number) => {
+  const cycleConfig = useMemo(() => 
+    billingCycle ? BILLING_CYCLE_CONFIG[billingCycle] : null,
+    [billingCycle]
+  )
+  
+  const formatPrice = useMemo(() => (amount: number) => {
     return `${currencyConfig.symbol}${amount.toFixed(2)}`
-  }
+  }, [currencyConfig.symbol])
+
+  const formattedPrice = useMemo(() => formatPrice(price), [formatPrice, price])
+  const formattedSetupFee = useMemo(() => 
+    setupFee && setupFee > 0 ? formatPrice(setupFee) : null,
+    [formatPrice, setupFee]
+  )
 
   return (
     <div className={className}>
       <span className="font-semibold text-lg">
-        {formatPrice(price)}
+        {formattedPrice}
         {cycleConfig && (
           <span className="text-sm text-muted-foreground ml-1">
             / {cycleConfig.text}
           </span>
         )}
       </span>
-      {setupFee && setupFee > 0 && (
+      {formattedSetupFee && (
         <div className="text-sm text-muted-foreground">
-          + {formatPrice(setupFee)} 安装费
+          + {formattedSetupFee} 安装费
         </div>
       )}
     </div>
   )
-}
+})

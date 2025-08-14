@@ -33,7 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { userService } from "@/lib/user-service"
+import { useUpdateUser } from "@/hooks/mutations/use-user-mutations"
 import { UpdateUserRequest, UserResponse, UserDetailResponse } from "@/lib/user-types"
 
 const editUserSchema = z.object({
@@ -66,7 +66,18 @@ interface EditUserDialogProps {
 
 export function EditUserDialog({ user, onUserUpdated, trigger }: EditUserDialogProps) {
   const [open, setOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  
+  // 使用React Query mutation hook
+  const updateUserMutation = useUpdateUser({
+    onSuccess: (data) => {
+      if (data.code === 0) {
+        // 关闭对话框
+        setOpen(false)
+        // 通知父组件用户已更新
+        onUserUpdated?.(data)
+      }
+    }
+  })
 
   const form = useForm<EditUserFormValues>({
     resolver: zodResolver(editUserSchema),
@@ -91,50 +102,24 @@ export function EditUserDialog({ user, onUserUpdated, trigger }: EditUserDialogP
   }, [user, form])
 
   const handleSubmit = async (values: EditUserFormValues) => {
-    try {
-      setIsLoading(true)
-      
-      // 准备API请求数据 - 只包含有变化的字段
-      const updateUserData: UpdateUserRequest = {}
-      
-      // 比较并添加变化的字段
-      if (values.name !== user.name) updateUserData.name = values.name || undefined
-      if (values.username !== user.username) updateUserData.username = values.username || undefined
-      if (values.email !== user.email) updateUserData.email = values.email
-      if (values.role !== user.role) updateUserData.role = values.role
-      if (values.status !== user.status) updateUserData.status = values.status
+    // 准备API请求数据 - 只包含有变化的字段
+    const updateUserData: UpdateUserRequest = {}
+    
+    // 比较并添加变化的字段
+    if (values.name !== user.name) updateUserData.name = values.name || undefined
+    if (values.username !== user.username) updateUserData.username = values.username || undefined
+    if (values.email !== user.email) updateUserData.email = values.email
+    if (values.role !== user.role) updateUserData.role = values.role
+    if (values.status !== user.status) updateUserData.status = values.status
 
-      // 如果没有变化，直接关闭对话框
-      if (Object.keys(updateUserData).length === 0) {
-        setOpen(false)
-        return
-      }
-
-      console.log('更新用户请求数据:', updateUserData)
-      
-      const response = await userService.updateUser(user.id, updateUserData)
-      
-      if (response.code === 0 && response.data) {
-        console.log('用户更新成功:', response.data)
-        
-        // 关闭对话框
-        setOpen(false)
-        
-        // 通知父组件用户已更新
-        onUserUpdated?.(response)
-        
-        // TODO: 添加成功提示
-        console.log('用户更新成功')
-      } else {
-        throw new Error(response.message || '更新用户失败')
-      }
-    } catch (error) {
-      console.error('更新用户失败:', error)
-      // TODO: 添加错误提示
-      alert(error instanceof Error ? error.message : '更新用户失败')
-    } finally {
-      setIsLoading(false)
+    // 如果没有变化，直接关闭对话框
+    if (Object.keys(updateUserData).length === 0) {
+      setOpen(false)
+      return
     }
+
+    // 使用React Query mutation执行更新操作
+    updateUserMutation.mutate({ id: user.id, data: updateUserData })
   }
 
   const handleFormAction = async (formData: FormData) => {
@@ -273,13 +258,13 @@ export function EditUserDialog({ user, onUserUpdated, trigger }: EditUserDialogP
                 type="button"
                 variant="outline"
                 onClick={() => setOpen(false)}
-                disabled={isLoading}
+                disabled={updateUserMutation.isPending}
               >
                 取消
               </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isLoading ? '保存中...' : '保存更改'}
+              <Button type="submit" disabled={updateUserMutation.isPending}>
+                {updateUserMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {updateUserMutation.isPending ? '保存中...' : '保存更改'}
               </Button>
             </DialogFooter>
           </form>

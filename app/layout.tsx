@@ -9,6 +9,9 @@ import { Toaster } from "@/components/ui/sonner";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { usePathname } from "next/navigation";
 import { globalErrorHandler } from "@/lib/error-handler";
+import { QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { getQueryClient } from '@/lib/query-client';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -60,6 +63,9 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // 获取QueryClient实例
+  const queryClient = getQueryClient();
+  
   return (
     <html lang="en">
       <head>
@@ -69,8 +75,17 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <LayoutContent>{children}</LayoutContent>
-        <Toaster />
+        <QueryClientProvider client={queryClient}>
+          <LayoutContent>{children}</LayoutContent>
+          <Toaster />
+          {/* 开发环境显示React Query DevTools */}
+          {process.env.NODE_ENV === 'development' && (
+            <ReactQueryDevtools 
+              initialIsOpen={false}
+              position="bottom-right"
+            />
+          )}
+        </QueryClientProvider>
       </body>
     </html>
   );

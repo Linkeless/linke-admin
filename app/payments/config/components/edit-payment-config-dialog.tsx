@@ -8,9 +8,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { UpdatePaymentConfigRequest, PaymentConfigResponse } from '@/lib/payment-types'
-import { paymentService } from '@/lib/payment-service'
 import { PaymentConfigForm } from './payment-config-form'
-import { toast } from 'sonner'
+import { useUpdatePaymentConfig } from '@/hooks/mutations/use-payment-mutations'
 
 interface EditPaymentConfigDialogProps {
   config: PaymentConfigResponse | null
@@ -25,29 +24,16 @@ export function EditPaymentConfigDialog({
   onOpenChange,
   onConfigUpdated 
 }: EditPaymentConfigDialogProps) {
-  const [loading, setLoading] = useState(false)
+  const updatePaymentConfig = useUpdatePaymentConfig({
+    onSuccess: () => {
+      onOpenChange(false)
+      onConfigUpdated?.()
+    }
+  })
 
   const handleSubmit = async (data: UpdatePaymentConfigRequest) => {
     if (!config) return
-
-    try {
-      setLoading(true)
-      
-      const response = await paymentService.updatePaymentConfig(config.id, data)
-      
-      if (response.code === 0) {
-        toast.success('支付配置更新成功')
-        onOpenChange(false)
-        onConfigUpdated?.()
-      } else {
-        toast.error(response.message || '更新支付配置失败')
-      }
-    } catch (error) {
-      console.error('更新支付配置失败:', error)
-      toast.error('更新支付配置时发生错误，请稍后重试')
-    } finally {
-      setLoading(false)
-    }
+    updatePaymentConfig.mutate({ id: config.id, data })
   }
 
   const handleCancel = () => {
@@ -67,7 +53,7 @@ export function EditPaymentConfigDialog({
           initialData={config}
           onSubmit={handleSubmit}
           onCancel={handleCancel}
-          loading={loading}
+          loading={updatePaymentConfig.isPending}
         />
       </DialogContent>
     </Dialog>

@@ -33,13 +33,14 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 
-import { shadowsocksServerService } from "@/lib/shadowsocks-service"
 import { 
   CreateShadowsocksServerRequest, 
   CIPHER_OPTIONS, 
   OBFS_OPTIONS,
   convertBooleanToShow
 } from "@/lib/shadowsocks-types"
+import { useCreateShadowsocksServer } from "@/hooks/mutations/use-server-mutations"
+import { toast } from "sonner"
 
 const formSchema = z.object({
   name: z.string().min(1, "服务器名称不能为空").max(255, "服务器名称不能超过255个字符"),
@@ -68,7 +69,27 @@ interface CreateServerDialogProps {
 
 export function CreateServerDialog({ onServerCreated }: CreateServerDialogProps) {
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
+  
+  // 使用 React Query mutation
+  const createServerMutation = useCreateShadowsocksServer({
+    onSuccess: (data) => {
+      if (data.code === 0) {
+        toast.success('服务器创建成功')
+        form.reset()
+        setOpen(false)
+        onServerCreated()
+      } else {
+        toast.error('服务器创建失败', {
+          description: data.message
+        })
+      }
+    },
+    onError: (error) => {
+      toast.error('服务器创建失败', {
+        description: error.message
+      })
+    }
+  })
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -93,50 +114,27 @@ export function CreateServerDialog({ onServerCreated }: CreateServerDialogProps)
   })
 
   const handleSubmit = async (data: FormData) => {
-    try {
-      setLoading(true)
-      
-      // 验证表单数据
-      const validationErrors = shadowsocksServerService.validateServerConfig(data)
-      if (validationErrors.length > 0) {
-        alert(`表单验证失败：\n${validationErrors.join('\n')}`)
-        return
-      }
-
-      const createData: CreateShadowsocksServerRequest = {
-        name: data.name,
-        host: data.host,
-        server_port: data.server_port,
-        port: data.port,
-        cipher: data.cipher,
-        group_id: data.group_id,
-        rate: data.rate,
-        sort: data.sort,
-        parent_id: data.parent_id === 0 ? undefined : data.parent_id,
-        route_id: data.route_id || undefined,
-        tags: data.tags || undefined,
-        obfs: data.obfs === 'none' ? undefined : data.obfs,
-        obfs_settings: data.obfs_settings || undefined,
-        ips: data.ips || undefined,
-        excludes: data.excludes || undefined,
-        show: convertBooleanToShow(data.is_show),
-      }
-
-      const response = await shadowsocksServerService.createServer(createData)
-      
-      if (response.code === 0) {
-        form.reset()
-        setOpen(false)
-        onServerCreated()
-      } else {
-        throw new Error(response.message || '创建失败')
-      }
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : '未知错误'
-      alert(`创建服务器失败: ${errorMessage}`)
-    } finally {
-      setLoading(false)
+    const createData: CreateShadowsocksServerRequest = {
+      name: data.name,
+      host: data.host,
+      server_port: data.server_port,
+      port: data.port,
+      cipher: data.cipher,
+      group_id: data.group_id,
+      rate: data.rate,
+      sort: data.sort,
+      parent_id: data.parent_id === 0 ? undefined : data.parent_id,
+      route_id: data.route_id || undefined,
+      tags: data.tags || undefined,
+      obfs: data.obfs === 'none' ? undefined : data.obfs,
+      obfs_settings: data.obfs_settings || undefined,
+      ips: data.ips || undefined,
+      excludes: data.excludes || undefined,
+      show: convertBooleanToShow(data.is_show),
     }
+
+    // 使用 mutation 创建服务器
+    createServerMutation.mutate(createData)
   }
 
   const handleFormAction = async (formData: FormData) => {
@@ -413,17 +411,17 @@ export function CreateServerDialog({ onServerCreated }: CreateServerDialogProps)
                 type="button"
                 variant="outline"
                 onClick={() => setOpen(false)}
-                disabled={loading}
+                disabled={createServerMutation.isPending}
                 className="flex-1"
               >
                 取消
               </Button>
               <Button 
                 type="submit" 
-                disabled={loading} 
+                disabled={createServerMutation.isPending} 
                 className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {createServerMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 保存
               </Button>
             </DialogFooter>

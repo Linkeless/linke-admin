@@ -11,9 +11,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
 import { CreatePaymentConfigRequest } from '@/lib/payment-types'
-import { paymentService } from '@/lib/payment-service'
 import { PaymentConfigForm } from './payment-config-form'
-import { toast } from 'sonner'
+import { useCreatePaymentConfig } from '@/hooks/mutations/use-payment-mutations'
 
 interface CreatePaymentConfigDialogProps {
   onConfigCreated?: () => void
@@ -23,27 +22,15 @@ export function CreatePaymentConfigDialog({
   onConfigCreated 
 }: CreatePaymentConfigDialogProps) {
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const createPaymentConfig = useCreatePaymentConfig({
+    onSuccess: () => {
+      setOpen(false)
+      onConfigCreated?.()
+    }
+  })
 
   const handleSubmit = async (data: CreatePaymentConfigRequest) => {
-    try {
-      setLoading(true)
-      
-      const response = await paymentService.createPaymentConfig(data)
-      
-      if (response.code === 0) {
-        toast.success('支付配置创建成功')
-        setOpen(false)
-        onConfigCreated?.()
-      } else {
-        toast.error(response.message || '创建支付配置失败')
-      }
-    } catch (error) {
-      console.error('创建支付配置失败:', error)
-      toast.error('创建支付配置时发生错误，请稍后重试')
-    } finally {
-      setLoading(false)
-    }
+    createPaymentConfig.mutate(data)
   }
 
   const handleCancel = () => {
@@ -66,7 +53,7 @@ export function CreatePaymentConfigDialog({
         <PaymentConfigForm
           onSubmit={handleSubmit}
           onCancel={handleCancel}
-          loading={loading}
+          loading={createPaymentConfig.isPending}
         />
       </DialogContent>
     </Dialog>

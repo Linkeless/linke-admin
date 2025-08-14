@@ -36,6 +36,11 @@ import Link from 'next/link'
 
 import { Invoice } from '@/lib/invoice-types'
 import { invoiceService } from '@/lib/invoice-service'
+import { 
+  useMarkInvoicePaid, 
+  useMarkInvoiceVoid, 
+  useSendInvoice 
+} from '@/hooks/mutations/use-finance-mutations'
 
 interface InvoiceActionsProps {
   invoice: Invoice
@@ -45,76 +50,73 @@ interface InvoiceActionsProps {
 
 export function InvoiceActions({ invoice, onUpdate, size = 'md' }: InvoiceActionsProps) {
   const [confirmAction, setConfirmAction] = useState<'paid' | 'void' | null>(null)
-  const [loading, setLoading] = useState(false)
 
   const canMarkPaid = invoice.status === 'sent' || invoice.status === 'viewed' || invoice.status === 'overdue'
   const canSend = invoice.status === 'draft' || invoice.status === 'sent'
   const canVoid = invoice.status !== 'paid' && invoice.status !== 'void' && invoice.status !== 'cancelled'
   const canEdit = invoice.status === 'draft' || invoice.status === 'sent'
 
-  const handleMarkPaid = async () => {
-    try {
-      setLoading(true)
-      await invoiceService.markInvoicePaid(invoice.id, {
+  // 使用React Query mutations统一错误处理
+  const markPaidMutation = useMarkInvoicePaid({
+    onSuccess: () => {
+      onUpdate?.()
+      setConfirmAction(null)
+    }
+  })
+
+  const markVoidMutation = useMarkInvoiceVoid({
+    onSuccess: () => {
+      onUpdate?.()
+      setConfirmAction(null)
+    }
+  })
+
+  const sendInvoiceMutation = useSendInvoice({
+    onSuccess: () => {
+      onUpdate?.()
+    }
+  })
+
+  const handleMarkPaid = () => {
+    markPaidMutation.mutate({
+      id: invoice.id,
+      data: {
         payment_date: new Date().toISOString(),
         amount: invoice.total_amount,
-      })
-      toast.success(`发票"${invoice.invoice_number}"已标记为已付款`)
-      onUpdate?.()
-    } catch (error) {
-      console.error('标记付款失败:', error)
-      toast.error('标记付款时发生错误，请稍后重试')
-    } finally {
-      setLoading(false)
-      setConfirmAction(null)
-    }
+      }
+    })
   }
 
-  const handleMarkVoid = async () => {
-    try {
-      setLoading(true)
-      await invoiceService.markInvoiceVoid(invoice.id, {
+  const handleMarkVoid = () => {
+    markVoidMutation.mutate({
+      id: invoice.id,
+      data: {
         reason: '管理员作废',
-      })
-      toast.success(`发票"${invoice.invoice_number}"已作废`)
-      onUpdate?.()
-    } catch (error) {
-      console.error('作废发票失败:', error)
-      toast.error('作废发票时发生错误，请稍后重试')
-    } finally {
-      setLoading(false)
-      setConfirmAction(null)
-    }
+      }
+    })
   }
 
-  const handleSend = async () => {
-    try {
-      setLoading(true)
-      await invoiceService.sendInvoice(invoice.id, {
+  const handleSend = () => {
+    sendInvoiceMutation.mutate({
+      id: invoice.id,
+      data: {
         to_email: invoice.user?.email,
         attach_pdf: true,
-      })
-      toast.success(`发票"${invoice.invoice_number}"已发送`)
-      onUpdate?.()
-    } catch (error) {
-      console.error('发送发票失败:', error)
-      toast.error('发送发票时发生错误，请稍后重试')
-    } finally {
-      setLoading(false)
-    }
+      }
+    })
   }
+
+  // 检查是否有任何操作正在进行
+  const loading = markPaidMutation.isPending || markVoidMutation.isPending || sendInvoiceMutation.isPending
 
   const handleDownload = async () => {
     try {
-      setLoading(true)
       const blob = await invoiceService.downloadInvoice(invoice.id)
       invoiceService.downloadFile(blob, `invoice-${invoice.invoice_number}.pdf`)
       toast.success('发票下载成功')
     } catch (error) {
       console.error('下载发票失败:', error)
       toast.error('下载发票时发生错误，请稍后重试')
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -127,6 +129,7 @@ export function InvoiceActions({ invoice, onUpdate, size = 'md' }: InvoiceAction
         printWindow.onload = () => {
           printWindow.print()
           printWindow.close()
+          window.URL.revokeObjectURL(url)
         }
       }
     } catch (error) {

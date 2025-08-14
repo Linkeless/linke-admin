@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from "react"
-import { TrendingDown, TrendingUp, Users, ShoppingCart, Ticket, UserPlus } from "lucide-react"
+import React from "react"
+import { TrendingDown, TrendingUp, Users, ShoppingCart, Ticket, UserPlus, RefreshCw } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
   Card,
   CardAction,
@@ -12,53 +13,63 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { dashboardService } from "@/lib/dashboard-service"
+import { useDashboardOverview } from "@/hooks/queries/use-dashboard"
 import { DashboardOverview, StatsQueryParams } from "@/lib/stats-types"
 
 interface DashboardStatsCardsProps {
   period?: StatsQueryParams
+  enableAutoRefresh?: boolean
+  refreshInterval?: number
 }
 
-export function DashboardStatsCards({ period }: DashboardStatsCardsProps) {
-  const [data, setData] = useState<DashboardOverview | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+export const DashboardStatsCards = React.memo<DashboardStatsCardsProps>(function DashboardStatsCards({ 
+  period, 
+  enableAutoRefresh = false,
+  refreshInterval = 300000 // 5分钟默认刷新间隔
+}) {
+  // 使用React Query hook替代传统的useState + useEffect模式
+  const { 
+    data, 
+    isLoading, 
+    error, 
+    refetch,
+    isRefetching,
+    dataUpdatedAt
+  } = useDashboardOverview({ 
+    ...period,
+    autoRefresh: enableAutoRefresh,
+    refreshInterval
+  })
 
-  useEffect(() => {
-    loadDashboardData()
-  }, [period])
-
-  const loadDashboardData = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      const overview = await dashboardService.getOverview(period)
-      setData(overview)
-    } catch (err) {
-      console.error('加载Dashboard数据失败:', err)
-      setError(err instanceof Error ? err.message : '加载数据失败')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const formatCurrency = (amount: number) => {
+  // 使用React.useCallback缓存函数，避免不必要的重新渲染
+  const formatCurrency = React.useCallback((amount: number) => {
     return new Intl.NumberFormat('zh-CN', {
       style: 'currency',
       currency: 'CNY'
     }).format(amount)
-  }
+  }, [])
 
-  const formatNumber = (num: number) => {
+  const formatNumber = React.useCallback((num: number) => {
     return new Intl.NumberFormat('zh-CN').format(num)
-  }
+  }, [])
 
-  const calculateGrowthRate = (current: number, previous: number) => {
+  const calculateGrowthRate = React.useCallback((current: number, previous: number) => {
     if (previous === 0) return 0
     return ((current - previous) / previous * 100).toFixed(1)
-  }
+  }, [])
 
-  if (loading) {
+  // 手动刷新功能
+  const handleRefresh = React.useCallback(() => {
+    refetch()
+  }, [refetch])
+
+  // 计算数据最后更新时间
+  const lastUpdated = React.useMemo(() => {
+    if (!dataUpdatedAt) return null
+    return new Date(dataUpdatedAt).toLocaleTimeString('zh-CN')
+  }, [dataUpdatedAt])
+
+  if (isLoading) {
     return (
       <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
         {[...Array(4)].map((_, i) => (
@@ -81,8 +92,14 @@ export function DashboardStatsCards({ period }: DashboardStatsCardsProps) {
       <div className="px-4 lg:px-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-red-600">加载数据失败</CardTitle>
-            <CardDescription>{error}</CardDescription>
+            <CardTitle className="text-red-600 flex items-center justify-between">
+              加载数据失败
+              <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefetching}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${isRefetching ? 'animate-spin' : ''}`} />
+                重试
+              </Button>
+            </CardTitle>
+            <CardDescription>{error?.message || '获取仪表板数据失败，请重试'}</CardDescription>
           </CardHeader>
         </Card>
       </div>
@@ -91,14 +108,41 @@ export function DashboardStatsCards({ period }: DashboardStatsCardsProps) {
 
   if (!data) return null
 
-  // 计算增长率 (这里使用模拟数据，实际应该从API获取历史数据)
-  const revenueGrowth = calculateGrowthRate(data.orders.total_revenue, data.orders.total_revenue * 0.9)
-  const userGrowth = calculateGrowthRate(data.users.new_users_this_month, data.users.new_users_this_month * 0.8)
-  const orderGrowth = calculateGrowthRate(data.orders.total_orders, data.orders.total_orders * 0.85)
-  const conversionRate = data.orders.conversion_rate
+  // 使用React.useMemo缓存计算结果，优化性能
+  const statsData = React.useMemo(() => {
+    // 计算增长率 (使用增强的数据计算功能)
+    const revenueGrowth = data.orders.growthRate || calculateGrowthRate(data.orders.total_revenue, data.orders.total_revenue * 0.9)
+    const userGrowth = data.users.growthRate || calculateGrowthRate(data.users.new_users_this_month, data.users.new_users_this_month * 0.8)
+    const orderGrowth = calculateGrowthRate(data.orders.total_orders, data.orders.total_orders * 0.85)
+    const conversionRate = data.orders.conversion_rate || data.orders.conversionPercentage / 100
+
+    return {
+      revenueGrowth,
+      userGrowth,
+      orderGrowth,
+      conversionRate
+    }
+  }, [data, calculateGrowthRate])
 
   return (
-    <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
+    <div className="space-y-4">
+      {/* 数据更新时间和刷新按钮 */}
+      <div className="flex items-center justify-between px-4 lg:px-6">
+        <div className="text-sm text-muted-foreground">
+          {lastUpdated && `最后更新: ${lastUpdated}`}
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleRefresh}
+          disabled={isRefetching}
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${isRefetching ? 'animate-spin' : ''}`} />
+          刷新数据
+        </Button>
+      </div>
+
+      <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
       {/* 总收入 */}
       <Card className="@container/card">
         <CardHeader>
@@ -108,8 +152,8 @@ export function DashboardStatsCards({ period }: DashboardStatsCardsProps) {
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
-              {parseFloat(revenueGrowth) >= 0 ? <TrendingUp /> : <TrendingDown />}
-              {parseFloat(revenueGrowth) >= 0 ? '+' : ''}{revenueGrowth}%
+              {parseFloat(statsData.revenueGrowth) >= 0 ? <TrendingUp /> : <TrendingDown />}
+              {parseFloat(statsData.revenueGrowth) >= 0 ? '+' : ''}{statsData.revenueGrowth}%
             </Badge>
           </CardAction>
         </CardHeader>
@@ -119,7 +163,7 @@ export function DashboardStatsCards({ period }: DashboardStatsCardsProps) {
             {data.orders.paid_orders} 笔已支付订单
           </div>
           <div className="text-muted-foreground">
-            平均订单价值: {formatCurrency(data.orders.avg_order_value)}
+            平均订单价值: {formatCurrency(data.orders.avgOrderValue || data.orders.avg_order_value)}
           </div>
         </CardFooter>
       </Card>
@@ -133,8 +177,8 @@ export function DashboardStatsCards({ period }: DashboardStatsCardsProps) {
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
-              {parseFloat(userGrowth) >= 0 ? <TrendingUp /> : <TrendingDown />}
-              {parseFloat(userGrowth) >= 0 ? '+' : ''}{userGrowth}%
+              {parseFloat(statsData.userGrowth) >= 0 ? <TrendingUp /> : <TrendingDown />}
+              {parseFloat(statsData.userGrowth) >= 0 ? '+' : ''}{statsData.userGrowth}%
             </Badge>
           </CardAction>
         </CardHeader>
@@ -159,7 +203,7 @@ export function DashboardStatsCards({ period }: DashboardStatsCardsProps) {
           <CardAction>
             <Badge variant="outline">
               <Users />
-              {((data.users.active_users / data.users.total_users) * 100).toFixed(1)}%
+              {(data.users.activeRate * 100 || ((data.users.active_users / data.users.total_users) * 100)).toFixed(1)}%
             </Badge>
           </CardAction>
         </CardHeader>
@@ -179,12 +223,12 @@ export function DashboardStatsCards({ period }: DashboardStatsCardsProps) {
         <CardHeader>
           <CardDescription>订单转化率</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {(conversionRate * 100).toFixed(1)}%
+            {(statsData.conversionRate * 100).toFixed(1)}%
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
-              {conversionRate >= 0.1 ? <TrendingUp /> : <TrendingDown />}
-              {conversionRate >= 0.1 ? '良好' : '需优化'}
+              {statsData.conversionRate >= 0.1 ? <TrendingUp /> : <TrendingDown />}
+              {statsData.conversionRate >= 0.1 ? '良好' : '需优化'}
             </Badge>
           </CardAction>
         </CardHeader>
@@ -199,5 +243,6 @@ export function DashboardStatsCards({ period }: DashboardStatsCardsProps) {
         </CardFooter>
       </Card>
     </div>
+    </div>
   )
-}
+})

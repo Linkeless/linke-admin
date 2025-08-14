@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { Eye, Layers, Calendar, Clock } from "lucide-react"
 
 import { ServerGroupResponse } from "@/lib/server-group-types"
-import { serverGroupService } from "@/lib/server-group-service"
+import { serverQueryUtils } from "@/hooks/queries/use-servers"
 
 interface ServerGroupDetailDialogProps {
   serverGroup: ServerGroupResponse
@@ -62,7 +62,7 @@ export function ServerGroupDetailDialog({ serverGroup }: ServerGroupDetailDialog
               </span>
               <div className="text-right">
                 <span className="text-sm">
-                  {serverGroupService.formatDateTime(serverGroup.created_at)}
+                  {serverQueryUtils.formatDateTime(serverGroup.created_at)}
                 </span>
                 <div className="text-xs text-muted-foreground">
                   {new Date(serverGroup.created_at).toLocaleDateString('zh-CN', {
@@ -83,7 +83,7 @@ export function ServerGroupDetailDialog({ serverGroup }: ServerGroupDetailDialog
               </span>
               <div className="text-right">
                 <span className="text-sm">
-                  {serverGroupService.formatDateTime(serverGroup.updated_at)}
+                  {serverQueryUtils.formatDateTime(serverGroup.updated_at)}
                 </span>
                 <div className="text-xs text-muted-foreground">
                   {new Date(serverGroup.updated_at).toLocaleDateString('zh-CN', {

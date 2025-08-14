@@ -34,12 +34,12 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 
-import { subscriptionService } from "@/lib/subscription-service"
 import { 
   CURRENCY_CONFIG, 
   BILLING_CYCLE_CONFIG,
   type CreatePlanRequest
 } from "@/lib/subscription-types"
+import { useCreateSubscriptionPlan } from "@/hooks/mutations/use-subscription-mutations"
 
 const formSchema = z.object({
   name: z.string().min(1, '计划名称不能为空').max(100, '计划名称不能超过100字符'),
@@ -73,7 +73,17 @@ interface CreatePlanDialogProps {
 
 export function CreatePlanDialog({ onPlanCreated }: CreatePlanDialogProps) {
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
+  
+  const createPlanMutation = useCreateSubscriptionPlan({
+    onSuccess: () => {
+      form.reset()
+      setOpen(false)
+      onPlanCreated()
+    },
+    onError: (error) => {
+      console.error('创建订阅计划失败:', error)
+    }
+  })
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -99,50 +109,31 @@ export function CreatePlanDialog({ onPlanCreated }: CreatePlanDialogProps) {
   })
 
   const handleSubmit = async (data: FormData) => {
-    try {
-      setLoading(true)
+    // 转换GB为字节（1GB = 1024^3 bytes）
+    const trafficLimitBytes = data.traffic_limit_gb * 1024 * 1024 * 1024
 
-      // 转换GB为字节（1GB = 1024^3 bytes）
-      const trafficLimitBytes = data.traffic_limit_gb * 1024 * 1024 * 1024
-
-      const createData: CreatePlanRequest = {
-        name: data.name,
-        code: data.code,
-        description: data.description,
-        price: data.price,
-        currency: data.currency,
-        billing_cycle: data.billing_cycle,
-        billing_interval: data.billing_interval,
-        traffic_limit: trafficLimitBytes,
-        traffic_reset_cycle: data.traffic_reset_cycle,
-        trial_period_days: data.trial_period_days,
-        setup_fee: data.setup_fee,
-        cancellation_fee: data.cancellation_fee,
-        is_visible: data.is_visible,
-        is_popular: data.is_popular,
-        is_recommended: data.is_recommended,
-        sort_order: data.sort_order,
-        default_server_group_ids: data.default_server_group_ids,
-      }
-
-      console.log('创建订阅计划数据:', createData)
-      const response = await subscriptionService.createPlan(createData)
-      
-      if (response.code === 0) {
-        console.log('订阅计划创建成功:', response.data)
-        form.reset()
-        setOpen(false)
-        onPlanCreated()
-      } else {
-        throw new Error(response.message || '创建失败')
-      }
-    } catch (error: unknown) {
-      console.error('创建订阅计划失败:', error)
-      const errorMessage = error instanceof Error ? error.message : '未知错误'
-      alert(`创建订阅计划失败: ${errorMessage}`)
-    } finally {
-      setLoading(false)
+    const createData: CreatePlanRequest = {
+      name: data.name,
+      code: data.code,
+      description: data.description,
+      price: data.price,
+      currency: data.currency,
+      billing_cycle: data.billing_cycle,
+      billing_interval: data.billing_interval,
+      traffic_limit: trafficLimitBytes,
+      traffic_reset_cycle: data.traffic_reset_cycle,
+      trial_period_days: data.trial_period_days,
+      setup_fee: data.setup_fee,
+      cancellation_fee: data.cancellation_fee,
+      is_visible: data.is_visible,
+      is_popular: data.is_popular,
+      is_recommended: data.is_recommended,
+      sort_order: data.sort_order,
+      default_server_group_ids: data.default_server_group_ids,
     }
+
+    console.log('创建订阅计划数据:', createData)
+    createPlanMutation.mutate(createData)
   }
 
   const handleFormAction = async (formData: FormData) => {
@@ -547,17 +538,17 @@ export function CreatePlanDialog({ onPlanCreated }: CreatePlanDialogProps) {
                 type="button"
                 variant="outline"
                 onClick={() => setOpen(false)}
-                disabled={loading}
+                disabled={createPlanMutation.isPending}
                 className="flex-1"
               >
                 取消
               </Button>
               <Button 
                 type="submit" 
-                disabled={loading} 
+                disabled={createPlanMutation.isPending} 
                 className="flex-1"
               >
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {createPlanMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 创建计划
               </Button>
             </DialogFooter>

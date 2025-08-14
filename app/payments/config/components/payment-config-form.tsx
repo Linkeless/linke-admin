@@ -29,8 +29,8 @@ import {
   UpdatePaymentConfigRequest,
   PaymentConfigResponse 
 } from '@/lib/payment-types'
+import { usePaymentMethods } from '@/hooks/queries/use-payments'
 import { paymentService } from '@/lib/payment-service'
-// import { ConfigEditor } from './config-editor'
 
 // 表单验证模式 - 严格按照swagger dto.CreatePaymentConfigRequest定义
 const formSchema = z.object({
@@ -60,6 +60,44 @@ interface PaymentConfigFormProps {
   onSubmit: (data: CreatePaymentConfigRequest | UpdatePaymentConfigRequest) => Promise<void>
   onCancel?: () => void
   loading?: boolean
+}
+
+// 支付方式选项组件
+const PaymentMethodOptions = () => {
+  const { data: methodsData } = usePaymentMethods()
+  
+  if (!methodsData?.data) {
+    return (
+      <SelectItem value="" disabled>
+        加载中...
+      </SelectItem>
+    )
+  }
+  
+  return (
+    <>
+      {methodsData.data.map((method) => (
+        <SelectItem key={method.value} value={method.value}>
+          {method.label}
+        </SelectItem>
+      ))}
+    </>
+  )
+}
+
+// 支持的货币选项组件
+const SupportedCurrencyOptions = () => {
+  const currencies = paymentService.getSupportedCurrencies()
+  
+  return (
+    <>
+      {currencies.map((currency) => (
+        <SelectItem key={currency.value} value={currency.value}>
+          {currency.label}
+        </SelectItem>
+      ))}
+    </>
+  )
 }
 
 export function PaymentConfigForm({
@@ -172,11 +210,7 @@ export function PaymentConfigForm({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {paymentService.getPaymentMethods().map((method) => (
-                      <SelectItem key={method.value} value={method.value}>
-                        {method.label}
-                      </SelectItem>
-                    ))}
+                    <PaymentMethodOptions />
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -239,11 +273,7 @@ export function PaymentConfigForm({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {paymentService.getSupportedCurrencies().map((currency) => (
-                      <SelectItem key={currency.value} value={currency.value}>
-                        {currency.label}
-                      </SelectItem>
-                    ))}
+                    <SupportedCurrencyOptions />
                   </SelectContent>
                 </Select>
                 <FormMessage />

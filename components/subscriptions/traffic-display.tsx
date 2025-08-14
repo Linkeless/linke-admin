@@ -1,5 +1,6 @@
 // 流量显示组件
 
+import React, { useMemo } from 'react'
 import { Badge } from '@/components/ui/badge'
 
 interface TrafficDisplayProps {
@@ -9,14 +10,14 @@ interface TrafficDisplayProps {
   className?: string
 }
 
-export function TrafficDisplay({ 
+export const TrafficDisplay = React.memo(function TrafficDisplay({ 
   limit, 
   limitText, 
   resetCycle, 
   className 
 }: TrafficDisplayProps) {
-  // 格式化重置周期显示
-  const formatResetCycle = (cycle: string) => {
+  // 格式化重置周期显示 - 使用useMemo缓存结果
+  const formattedResetCycle = useMemo(() => {
     const cycleMap: Record<string, string> = {
       monthly: '每月重置',
       yearly: '每年重置',
@@ -24,11 +25,14 @@ export function TrafficDisplay({
       weekly: '每周重置',
       daily: '每日重置'
     }
-    return cycleMap[cycle] || cycle
-  }
+    return cycleMap[resetCycle] || resetCycle
+  }, [resetCycle])
 
-  // 判断是否为无限流量
-  const isUnlimited = limit <= 0 || limit >= 999999999999
+  // 判断是否为无限流量 - 使用useMemo缓存计算结果
+  const isUnlimited = useMemo(() => 
+    limit <= 0 || limit >= 999999999999,
+    [limit]
+  )
 
   return (
     <div className={className}>
@@ -43,9 +47,9 @@ export function TrafficDisplay({
       </div>
       {!isUnlimited && (
         <div className="text-sm text-muted-foreground">
-          {formatResetCycle(resetCycle)}
+          {formattedResetCycle}
         </div>
       )}
     </div>
   )
-}
+})

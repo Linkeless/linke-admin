@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { CouponForm } from './coupon-form'
-import { couponService } from '@/lib/coupon-service'
+import { useUpdateCoupon } from '@/hooks/mutations/use-finance-mutations'
 import { CouponResponse, UpdateCouponRequest } from '@/lib/coupon-types'
 
 interface EditCouponDialogProps {
@@ -25,27 +25,21 @@ export function EditCouponDialog({
   onOpenChange, 
   onCouponUpdated 
 }: EditCouponDialogProps) {
-  const [loading, setLoading] = useState(false)
+  // 使用 React Query mutation
+  const updateCouponMutation = useUpdateCoupon({
+    onSuccess: () => {
+      onOpenChange(false)
+      onCouponUpdated()
+    }
+  })
 
   const handleSubmit = async (data: UpdateCouponRequest) => {
     if (!coupon) return
     
-    try {
-      setLoading(true)
-      const response = await couponService.updateCoupon(coupon.id, data)
-      
-      if (response.code === 0) {
-        onOpenChange(false)
-        onCouponUpdated()
-      } else {
-        throw new Error(response.message || '���新优惠码失败')
-      }
-    } catch (error) {
-      console.error('更新优惠码失败:', error)
-      throw error
-    } finally {
-      setLoading(false)
-    }
+    updateCouponMutation.mutate({
+      id: coupon.id,
+      data
+    })
   }
 
   return (
@@ -61,7 +55,7 @@ export function EditCouponDialog({
           <CouponForm
             initialData={coupon}
             onSubmit={handleSubmit}
-            loading={loading}
+            loading={updateCouponMutation.isPending}
             onCancel={() => onOpenChange(false)}
             isEdit={true}
           />

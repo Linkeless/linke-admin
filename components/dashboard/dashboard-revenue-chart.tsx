@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from "react"
+import React from "react"
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { useRevenueTrend } from "@/hooks/queries/use-dashboard"
 import {
   Card,
   CardAction,
@@ -11,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import {
   ChartConfig,
   ChartContainer,
@@ -25,8 +27,10 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import { dashboardService } from "@/lib/dashboard-service"
-import { RevenueTrendData, ChartDataPoint, StatsPeriod } from "@/lib/stats-types"
+import { Badge } from "@/components/ui/badge"
+import { RefreshCw, TrendingUp, TrendingDown, BarChart3 } from "lucide-react"
+import { ChartDataPoint, StatsPeriod } from "@/lib/stats-types"
+import { cn } from "@/lib/utils"
 
 const chartConfig = {
   revenue: {
@@ -41,62 +45,65 @@ const chartConfig = {
 
 interface DashboardRevenueChartProps {
   period?: StatsPeriod
+  className?: string
 }
 
-export function DashboardRevenueChart({ period = 'month' }: DashboardRevenueChartProps) {
-  const [data, setData] = useState<ChartDataPoint[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [selectedPeriod, setSelectedPeriod] = useState<StatsPeriod>(period)
+export const DashboardRevenueChart = React.memo<DashboardRevenueChartProps>(function DashboardRevenueChart({ 
+  period = 'month',
+  className
+}) {
+  const [selectedPeriod, setSelectedPeriod] = React.useState<StatsPeriod>(period)
   const isMobile = useIsMobile()
 
-  useEffect(() => {
-    loadChartData()
-  }, [selectedPeriod])
+  // 使用React Query获取收入趋势数据
+  const { 
+    data: trendData, 
+    isLoading, 
+    error, 
+    refetch,
+    isRefetching,
+    dataUpdatedAt
+  } = useRevenueTrend({ 
+    period: selectedPeriod,
+    enabled: true
+  })
 
-  const loadChartData = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      
-      const trendData = await dashboardService.getRevenueTrend({ period: selectedPeriod })
-      
-      let chartData: ChartDataPoint[] = []
-      switch (selectedPeriod) {
-        case 'week':
-        case 'today':
-          chartData = trendData.daily
-          break
-        case 'month':
-          chartData = trendData.weekly
-          break
-        case 'quarter':
-        case 'year':
-          chartData = trendData.monthly
-          break
-        default:
-          chartData = trendData.monthly
+  // 图表数据处理 - 使用useMemo缓存计算结果
+  const chartData = React.useMemo(() => {
+    if (!trendData?.trendData) return []
+    return trendData.trendData
+  }, [trendData])
+
+  // 统计信息计算 - 使用useMemo缓存
+  const statistics = React.useMemo(() => {
+    if (!trendData) {
+      return {
+        totalRevenue: 0,
+        averageDaily: 0,
+        growthTrend: 0,
+        formattedData: []
       }
-      
-      setData(chartData)
-    } catch (err) {
-      console.error('加载收入趋势数据失败:', err)
-      setError(err instanceof Error ? err.message : '加载图表数据失败')
-    } finally {
-      setLoading(false)
     }
-  }
 
-  const formatCurrency = (value: number) => {
+    return {
+      totalRevenue: trendData.totalRevenue || 0,
+      averageDaily: trendData.averageDaily || 0,
+      growthTrend: trendData.growthTrend || 0,
+      formattedData: trendData.formattedData || []
+    }
+  }, [trendData])
+
+  // 格式化函数 - 使用useCallback缓存
+  const formatCurrency = React.useCallback((value: number) => {
     return new Intl.NumberFormat('zh-CN', {
       style: 'currency',
       currency: 'CNY',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(value)
-  }
+  }, [])
 
-  const formatDate = (dateStr: string) => {
+  const formatDate = React.useCallback((dateStr: string) => {
     const date = new Date(dateStr)
     switch (selectedPeriod) {
       case 'today':
@@ -110,9 +117,9 @@ export function DashboardRevenueChart({ period = 'month' }: DashboardRevenueChar
       default:
         return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
     }
-  }
+  }, [selectedPeriod])
 
-  const getPeriodLabel = (period: StatsPeriod) => {
+  const getPeriodLabel = React.useCallback((period: StatsPeriod) => {
     const labels = {
       today: '今日',
       week: '本周',
@@ -122,17 +129,30 @@ export function DashboardRevenueChart({ period = 'month' }: DashboardRevenueChar
       all: '全部'
     }
     return labels[period] || period
-  }
+  }, [])
 
-  const totalRevenue = data.reduce((sum, item) => sum + item.value, 0)
-  const avgRevenue = data.length > 0 ? totalRevenue / data.length : 0
+  // 手动刷新处理函数
+  const handleRefresh = React.useCallback(() => {
+    refetch()
+  }, [refetch])
 
-  if (loading) {
+  // 最后更新时间格式化
+  const lastUpdated = React.useMemo(() => {
+    if (!dataUpdatedAt) return null
+    return new Date(dataUpdatedAt).toLocaleTimeString('zh-CN')
+  }, [dataUpdatedAt])
+
+  if (isLoading) {
     return (
-      <Card>
+      <Card className={className}>
         <CardHeader>
-          <Skeleton className="h-6 w-32" />
-          <Skeleton className="h-4 w-48" />
+          <div className="flex items-center justify-between">
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="h-4 w-48" />
+            </div>
+            <Skeleton className="h-9 w-32" />
+          </div>
         </CardHeader>
         <CardContent>
           <Skeleton className="h-[300px] w-full" />
@@ -143,26 +163,69 @@ export function DashboardRevenueChart({ period = 'month' }: DashboardRevenueChar
 
   if (error) {
     return (
-      <Card>
+      <Card className={className}>
         <CardHeader>
-          <CardTitle className="text-red-600">图表加载失败</CardTitle>
-          <CardDescription>{error}</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-red-600 flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                图表加载失败
+              </CardTitle>
+              <CardDescription>{error?.message || '收入趋势数据获取失败'}</CardDescription>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleRefresh}
+              disabled={isRefetching}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRefetching ? 'animate-spin' : ''}`} />
+              重试
+            </Button>
+          </div>
         </CardHeader>
       </Card>
     )
   }
 
   return (
-    <Card>
+    <Card className={className}>
       <CardHeader className="flex flex-col items-stretch space-y-0 border-b p-0 sm:flex-row">
         <div className="flex flex-1 flex-col justify-center gap-1 px-6 py-5 sm:py-6">
-          <CardTitle>收入趋势</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5" />
+            收入趋势
+            {statistics.growthTrend !== 0 && (
+              <Badge variant={statistics.growthTrend > 0 ? "default" : "secondary"} className="ml-2">
+                {statistics.growthTrend > 0 ? (
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                ) : (
+                  <TrendingDown className="h-3 w-3 mr-1" />
+                )}
+                {Math.abs(statistics.growthTrend).toFixed(1)}%
+              </Badge>
+            )}
+          </CardTitle>
           <CardDescription>
             {getPeriodLabel(selectedPeriod)}收入变化趋势
+            {lastUpdated && (
+              <span className="ml-2 text-xs text-muted-foreground">
+                · 更新于 {lastUpdated}
+              </span>
+            )}
           </CardDescription>
         </div>
         <div className="flex">
           <CardAction className="flex items-center gap-2 px-6 py-4">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleRefresh}
+              disabled={isRefetching}
+              className="mr-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
+            </Button>
             <Select
               value={selectedPeriod}
               onValueChange={(value: StatsPeriod) => setSelectedPeriod(value)}
@@ -200,7 +263,7 @@ export function DashboardRevenueChart({ period = 'month' }: DashboardRevenueChar
           className="aspect-auto h-[250px] w-full"
         >
           <AreaChart
-            data={data}
+            data={chartData}
             margin={{
               left: 12,
               right: 12,
@@ -246,21 +309,49 @@ export function DashboardRevenueChart({ period = 'month' }: DashboardRevenueChar
               fill="var(--color-revenue)"
               fillOpacity={0.4}
               stroke="var(--color-revenue)"
+              strokeWidth={2}
               stackId="a"
             />
           </AreaChart>
         </ChartContainer>
         
-        {/* 统计信息 */}
-        <div className="flex items-center justify-between border-t pt-4 text-sm">
-          <div className="text-muted-foreground">
-            {getPeriodLabel(selectedPeriod)}总收入: <span className="font-medium text-foreground">{formatCurrency(totalRevenue)}</span>
+        {/* 增强的统计信息 */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t pt-4 text-sm">
+          <div className="text-center">
+            <div className="text-muted-foreground">
+              {getPeriodLabel(selectedPeriod)}总收入
+            </div>
+            <div className="font-medium text-lg text-foreground">
+              {formatCurrency(statistics.totalRevenue)}
+            </div>
           </div>
-          <div className="text-muted-foreground">
-            平均收入: <span className="font-medium text-foreground">{formatCurrency(avgRevenue)}</span>
+          <div className="text-center">
+            <div className="text-muted-foreground">
+              平均收入
+            </div>
+            <div className="font-medium text-lg text-foreground">
+              {formatCurrency(statistics.averageDaily)}
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="text-muted-foreground">
+              增长趋势
+            </div>
+            <div className={cn(
+              "font-medium text-lg flex items-center justify-center gap-1",
+              statistics.growthTrend > 0 ? "text-green-600" : 
+              statistics.growthTrend < 0 ? "text-red-600" : "text-foreground"
+            )}>
+              {statistics.growthTrend > 0 ? (
+                <TrendingUp className="h-4 w-4" />
+              ) : statistics.growthTrend < 0 ? (
+                <TrendingDown className="h-4 w-4" />
+              ) : null}
+              {statistics.growthTrend > 0 ? '+' : ''}{statistics.growthTrend.toFixed(1)}%
+            </div>
           </div>
         </div>
       </CardContent>
     </Card>
   )
-}
+})

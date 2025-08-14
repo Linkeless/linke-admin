@@ -40,6 +40,7 @@ import {
   type SubscriptionPlan,
   type UpdatePlanRequest
 } from "@/lib/subscription-types"
+import { useUpdateSubscriptionPlan } from "@/hooks/mutations/use-subscription-mutations"
 
 const formSchema = z.object({
   name: z.string().min(1, '计划名称不能为空').max(100, '计划名称不能超过100字符'),
@@ -67,7 +68,16 @@ interface EditPlanDialogProps {
 
 export function EditPlanDialog({ plan, onPlanUpdated }: EditPlanDialogProps) {
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
+  
+  const updatePlanMutation = useUpdateSubscriptionPlan({
+    onSuccess: () => {
+      setOpen(false)
+      onPlanUpdated()
+    },
+    onError: (error) => {
+      console.error('更新订阅计划失败:', error)
+    }
+  })
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -86,25 +96,8 @@ export function EditPlanDialog({ plan, onPlanUpdated }: EditPlanDialogProps) {
   })
 
   const handleSubmit = async (data: FormData) => {
-    try {
-      setLoading(true)
-
-      const updateData: UpdatePlanRequest = data
-
-      const response = await subscriptionService.updatePlan(plan.id, updateData)
-      
-      if (response.code === 0) {
-        setOpen(false)
-        onPlanUpdated()
-      } else {
-        throw new Error(response.message || '更新失败')
-      }
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : '未知错误'
-      alert(`更新订阅计划失败: ${errorMessage}`)
-    } finally {
-      setLoading(false)
-    }
+    const updateData: UpdatePlanRequest = data
+    updatePlanMutation.mutate({ id: plan.id, data: updateData })
   }
 
   const handleFormAction = async (formData: FormData) => {
@@ -355,17 +348,17 @@ export function EditPlanDialog({ plan, onPlanUpdated }: EditPlanDialogProps) {
                 type="button"
                 variant="outline"
                 onClick={() => setOpen(false)}
-                disabled={loading}
+                disabled={updatePlanMutation.isPending}
                 className="flex-1"
               >
                 取消
               </Button>
               <Button 
                 type="submit" 
-                disabled={loading} 
+                disabled={updatePlanMutation.isPending} 
                 className="flex-1"
               >
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {updatePlanMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 保存
               </Button>
             </DialogFooter>

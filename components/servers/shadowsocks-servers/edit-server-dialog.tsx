@@ -33,7 +33,6 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 
-import { shadowsocksServerService } from "@/lib/shadowsocks-service"
 import { 
   ShadowsocksServerResponse,
   UpdateShadowsocksServerRequest, 
@@ -41,6 +40,8 @@ import {
   OBFS_OPTIONS,
   convertBooleanToShow
 } from "@/lib/shadowsocks-types"
+import { useUpdateServer } from "@/hooks/mutations/use-server-mutations"
+import { serverQueryUtils } from "@/hooks/queries/use-servers"
 
 const formSchema = z.object({
   name: z.string().min(1, "服务器名称不能为空").max(255, "服务器名称不能超过255个字符"),
@@ -71,7 +72,16 @@ interface EditServerDialogProps {
 
 export function EditServerDialog({ server, onServerUpdated, children }: EditServerDialogProps) {
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
+  
+  // 使用 React Query mutation
+  const updateServerMutation = useUpdateServer({
+    onSuccess: (data) => {
+      if (data.code === 0) {
+        setOpen(false)
+        onServerUpdated()
+      }
+    }
+  })
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -114,59 +124,44 @@ export function EditServerDialog({ server, onServerUpdated, children }: EditServ
         obfs_settings: server.obfs_settings || "",
         ips: server.ips || "",
         excludes: server.excludes || "",
-        is_show: shadowsocksServerService.getServerShowStatus(server),
+        is_show: serverQueryUtils.getServerShowStatus(server),
       })
     }
   }, [open, server, form])
 
   const handleSubmit = async (data: FormData) => {
-    try {
-      setLoading(true)
-      
-      // 验证表单数据
-      const validationErrors = shadowsocksServerService.validateServerConfig(data)
-      if (validationErrors.length > 0) {
-        alert(`表单验证失败：\n${validationErrors.join('\n')}`)
-        return
-      }
-
-      // PUT方法需要包含所有必需字段
-      const updateData: UpdateShadowsocksServerRequest = {
-        // 必需字段
-        name: data.name,
-        host: data.host,
-        server_port: data.server_port,
-        port: data.port,
-        cipher: data.cipher,
-        group_id: data.group_id,
-        rate: data.rate,
-        
-        // 可选字段
-        sort: data.sort,
-        parent_id: data.parent_id === 0 ? undefined : data.parent_id,
-        route_id: data.route_id || undefined,
-        tags: data.tags || undefined,
-        obfs: data.obfs === 'none' ? undefined : data.obfs,
-        obfs_settings: data.obfs_settings || undefined,
-        ips: data.ips || undefined,
-        excludes: data.excludes || undefined,
-        show: convertBooleanToShow(data.is_show),
-      }
-
-      const response = await shadowsocksServerService.updateServer(server.id, updateData)
-      
-      if (response.code === 0) {
-        setOpen(false)
-        onServerUpdated()
-      } else {
-        throw new Error(response.message || '更新失败')
-      }
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : '未知错误'
-      alert(`更新服务器失败: ${errorMessage}`)
-    } finally {
-      setLoading(false)
+    // 验证表单数据
+    const validationErrors = serverQueryUtils.validateServerConfig(data)
+    if (validationErrors.length > 0) {
+      alert(`表单验证失败：\n${validationErrors.join('\n')}`)
+      return
     }
+
+    // PUT方法需要包含所有必需字段
+    const updateData: UpdateShadowsocksServerRequest = {
+      // 必需字段
+      name: data.name,
+      host: data.host,
+      server_port: data.server_port,
+      port: data.port,
+      cipher: data.cipher,
+      group_id: data.group_id,
+      rate: data.rate,
+      
+      // 可选字段
+      sort: data.sort,
+      parent_id: data.parent_id === 0 ? undefined : data.parent_id,
+      route_id: data.route_id || undefined,
+      tags: data.tags || undefined,
+      obfs: data.obfs === 'none' ? undefined : data.obfs,
+      obfs_settings: data.obfs_settings || undefined,
+      ips: data.ips || undefined,
+      excludes: data.excludes || undefined,
+      show: convertBooleanToShow(data.is_show),
+    }
+
+    // 使用 mutation 更新服务器
+    updateServerMutation.mutate({ id: server.id, data: updateData })
   }
 
   const handleFormAction = async (formData: FormData) => {
@@ -444,17 +439,17 @@ export function EditServerDialog({ server, onServerUpdated, children }: EditServ
                 type="button"
                 variant="outline"
                 onClick={() => setOpen(false)}
-                disabled={loading}
+                disabled={updateServerMutation.isPending}
                 className="flex-1"
               >
                 取消
               </Button>
               <Button 
                 type="submit" 
-                disabled={loading} 
+                disabled={updateServerMutation.isPending} 
                 className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {updateServerMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 保存
               </Button>
             </DialogFooter>

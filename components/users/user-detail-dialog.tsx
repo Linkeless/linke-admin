@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Eye, Loader2, Copy, Check } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -15,8 +15,9 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { useUser } from "@/hooks/queries/use-users"
 import { userService } from "@/lib/user-service"
-import { UserResponse, UserDetailResponse } from "@/lib/user-types"
+import { UserResponse } from "@/lib/user-types"
 
 interface UserDetailDialogProps {
   user: UserResponse
@@ -25,34 +26,16 @@ interface UserDetailDialogProps {
 
 export function UserDetailDialog({ user, trigger }: UserDetailDialogProps) {
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [userDetail, setUserDetail] = useState<UserResponse | null>(null)
   const [copiedField, setCopiedField] = useState<string | null>(null)
 
-  const loadUserDetail = async () => {
-    try {
-      setLoading(true)
-      const response: UserDetailResponse = await userService.getUser(user.id)
-      
-      if (response.code === 0 && response.data) {
-        setUserDetail(response.data)
-      } else {
-        throw new Error(response.message || '获取用户详情失败')
-      }
-    } catch (error) {
-      console.error('获取用户详情失败:', error)
-      // 如果API失败，使用传入的用户基本信息
-      setUserDetail(user)
-    } finally {
-      setLoading(false)
-    }
-  }
+  // 使用React Query hook获取用户详情
+  const { data: userDetailResponse, isLoading, error } = useUser({
+    id: user.id,
+    enabled: open // 只有在对话框打开时才获取数据
+  })
 
-  useEffect(() => {
-    if (open) {
-      loadUserDetail()
-    }
-  }, [open, user.id])
+  // 提取用户详情数据
+  const userDetail = userDetailResponse?.code === 0 ? userDetailResponse.data : null
 
   const handleCopy = async (text: string, field: string) => {
     try {
@@ -140,7 +123,7 @@ export function UserDetailDialog({ user, trigger }: UserDetailDialogProps) {
           </DialogDescription>
         </DialogHeader>
 
-        {loading ? (
+        {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin mr-2" />
             <span>加载用户详情中...</span>

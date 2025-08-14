@@ -1,6 +1,6 @@
 // 订阅计划表格组件 - 使用shadcn/ui Table组件
 
-import { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import {
   Table,
   TableBody,
@@ -21,7 +21,8 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { MoreHorizontal, Edit, Trash2, Eye, Copy, ToggleLeft, ToggleRight } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { MoreHorizontal, Edit, Trash2, Eye, Copy, ToggleLeft, ToggleRight, AlertCircle } from 'lucide-react'
 import { PlanStatusBadge } from './status-badge'
 import { PriceDisplay } from './price-display'
 import { TrafficDisplay } from './traffic-display'
@@ -29,7 +30,8 @@ import type { SubscriptionPlan, Currency, BillingCycle } from '@/lib/subscriptio
 
 interface PlansTableProps {
   plans: SubscriptionPlan[]
-  loading: boolean
+  isLoading: boolean
+  error?: Error | null
   onEdit: (plan: SubscriptionPlan) => void
   onDelete: (id: number) => void
   onToggleStatus: (id: number, status: 'active' | 'inactive') => void
@@ -37,9 +39,10 @@ interface PlansTableProps {
   onClone?: (plan: SubscriptionPlan) => void
 }
 
-export function PlansTable({
+export const PlansTable = React.memo(function PlansTable({
   plans,
-  loading,
+  isLoading,
+  error,
   onEdit,
   onDelete,
   onToggleStatus,
@@ -48,7 +51,7 @@ export function PlansTable({
 }: PlansTableProps) {
   const [actioningId, setActioningId] = useState<number | null>(null)
 
-  const handleToggleStatus = async (plan: SubscriptionPlan) => {
+  const handleToggleStatus = useCallback(async (plan: SubscriptionPlan) => {
     setActioningId(plan.id)
     try {
       const newStatus = plan.status === 'active' ? 'inactive' : 'active'
@@ -56,18 +59,33 @@ export function PlansTable({
     } finally {
       setActioningId(null)
     }
-  }
+  }, [onToggleStatus])
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = useCallback(async (id: number) => {
     setActioningId(id)
     try {
       await onDelete(id)
     } finally {
       setActioningId(null)
     }
+  }, [onDelete])
+
+  // 错误状态
+  if (error) {
+    return (
+      <Card className="p-8">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            加载订阅计划失败: {error.message}
+          </AlertDescription>
+        </Alert>
+      </Card>
+    )
   }
 
-  if (loading) {
+  // 加载状态
+  if (isLoading) {
     return <PlansTableSkeleton />
   }
 
@@ -237,10 +255,10 @@ export function PlansTable({
       </Table>
     </Card>
   )
-}
+})
 
 // 加载骨架屏组件
-function PlansTableSkeleton() {
+const PlansTableSkeleton = React.memo(function PlansTableSkeleton() {
   return (
     <Card>
       <Table>
@@ -289,4 +307,4 @@ function PlansTableSkeleton() {
       </Table>
     </Card>
   )
-}
+})

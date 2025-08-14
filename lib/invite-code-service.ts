@@ -6,6 +6,8 @@ import {
   InviteCodeStatsResponse,
   BatchInviteCodeRequest,
   InviteCodesApiResponse,
+  InviteCodeUsageQueryParams,
+  InviteCodeUsagesApiResponse,
   ApiResponse
 } from './invite-code-types'
 import { getToken } from './api'

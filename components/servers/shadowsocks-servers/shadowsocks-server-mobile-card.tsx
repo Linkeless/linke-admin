@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { ShadowsocksServerResponse } from "@/lib/shadowsocks-types"
-import { shadowsocksServerService } from "@/lib/shadowsocks-service"
+import { serverQueryUtils } from "@/hooks/queries/use-servers"
 import { 
   EditServerDialog, 
   ServerDetailDialog
@@ -40,7 +40,7 @@ export function ShadowsocksServerMobileCard({
                   {server.name}
                 </h3>
                 <p className="text-sm text-muted-foreground mt-1 truncate">
-                  {shadowsocksServerService.formatServerAddress(server)}
+                  {serverQueryUtils.formatServerAddress(server)}
                 </p>
               </div>
             </div>
@@ -59,7 +59,7 @@ export function ShadowsocksServerMobileCard({
               <div className="flex items-center gap-1 bg-muted px-2 py-1 rounded-md">
                 <Activity className="h-3 w-3 text-muted-foreground" />
                 <span className="text-xs font-medium">
-                  {shadowsocksServerService.formatRateMultiplier(server.rate)}
+                  {serverQueryUtils.formatRateMultiplier(server.rate)}
                 </span>
               </div>
 
@@ -130,7 +130,7 @@ export function ShadowsocksServerMobileCard({
                   </div>
                   <Badge variant="outline" className="text-xs">
                     <Shield className="h-3 w-3 mr-1" />
-                    {shadowsocksServerService.getCipherDisplayName(server.cipher)}
+                    {serverQueryUtils.getCipherDisplayName(server.cipher)}
                   </Badge>
                 </div>
                 <div>
@@ -138,7 +138,7 @@ export function ShadowsocksServerMobileCard({
                     混淆方式
                   </div>
                   <Badge variant="secondary" className="text-xs">
-                    {shadowsocksServerService.getObfsDisplayName(server.obfs)}
+                    {serverQueryUtils.getObfsDisplayName(server.obfs)}
                   </Badge>
                 </div>
               </div>
@@ -187,7 +187,7 @@ export function ShadowsocksServerMobileCard({
                   创建时间
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  {shadowsocksServerService.formatDateTime(server.created_at)}
+                  {serverQueryUtils.formatDateTime(server.created_at)}
                 </div>
               </div>
             </div>

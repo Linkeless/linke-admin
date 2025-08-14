@@ -16,6 +16,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import { useUpdateUserRole } from '@/hooks/mutations/use-user-mutations'
 import { userService } from '@/lib/user-service'
 import { UserResponse } from '@/lib/user-types'
 import { cn } from '@/lib/utils'
@@ -33,7 +34,16 @@ const roleOptions = [
 
 export function QuickEditRole({ user, onUpdate }: QuickEditRoleProps) {
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
+
+  // 使用React Query mutation hook
+  const updateRoleMutation = useUpdateUserRole({
+    onSuccess: (data) => {
+      if (data.code === 0) {
+        setOpen(false)
+        onUpdate?.()
+      }
+    }
+  })
 
   const currentRole = user.role
 
@@ -43,34 +53,8 @@ export function QuickEditRole({ user, onUpdate }: QuickEditRoleProps) {
       return
     }
 
-    try {
-      setLoading(true)
-      await userService.updateUserRole(user.id, newRole)
-      setOpen(false)
-      onUpdate?.()
-    } catch (error) {
-      console.error('更新用户角色失败:', error)
-      
-      // 显示用户友好的错误提示
-      let errorMessage = '更新用户角色失败'
-      if (error instanceof Error) {
-        if (error.message.includes('Network Error')) {
-          errorMessage = '网络连接失败，请检查后端服务是否运行'
-        } else if (error.message.includes('401')) {
-          errorMessage = '认证失败，请重新登录'
-        } else if (error.message.includes('403')) {
-          errorMessage = '权限不足，无法执行此操作'
-        } else if (error.message.includes('404')) {
-          errorMessage = '用户不存在'
-        } else {
-          errorMessage = `更新失败: ${error.message}`
-        }
-      }
-      
-      alert(errorMessage)
-    } finally {
-      setLoading(false)
-    }
+    // 使用React Query mutation执行角色更新
+    updateRoleMutation.mutate({ id: user.id, role: newRole })
   }
 
   const getRoleDisplay = (role: string) => {
@@ -89,7 +73,7 @@ export function QuickEditRole({ user, onUpdate }: QuickEditRoleProps) {
           variant="ghost"
           size="sm"
           className="h-auto p-0 hover:bg-transparent"
-          disabled={loading}
+          disabled={updateRoleMutation.isPending}
         >
           {getRoleDisplay(currentRole)}
         </Button>

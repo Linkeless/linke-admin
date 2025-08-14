@@ -1,24 +1,20 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
 import { Plus, ShoppingCart } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { orderService } from '@/lib/order-service'
-import { SubscriptionOrderResponse, OrderQueryParams } from '@/lib/order-types'
+import { useOrders, useCancelOrder } from '@/hooks/queries/use-orders'
+import { OrderQueryParams } from '@/lib/order-types'
 import { createColumns } from './columns'
 import { OrderStatsCards } from './components/order-stats-cards'
 import { OrderDetailDialog } from './components/order-detail-dialog'
 import { CreateOrderDialog } from './components/create-order-dialog'
 
 export default function OrdersPage() {
-  const [orders, setOrders] = useState<SubscriptionOrderResponse[]>([])
-  const [loading, setLoading] = useState(true)
-  const [totalItems, setTotalItems] = useState(0)
-  
   // 分页状态
   const [pagination, setPagination] = useState({
     pageIndex: 0,
@@ -26,47 +22,30 @@ export default function OrdersPage() {
   })
 
   // 基础查询参数 - 使用 useMemo 避免重复创建对象
-  const baseParams = useMemo<OrderQueryParams>(() => ({
-    limit: 10,
-    offset: 0,
-  }), [])
+  const queryParams = useMemo<OrderQueryParams>(() => ({
+    limit: pagination.pageSize,
+    offset: pagination.pageIndex * pagination.pageSize,
+  }), [pagination.pageIndex, pagination.pageSize])
 
   // 对话框状态
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null)
   const [showDetailDialog, setShowDetailDialog] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
 
-  // 加载订单数据
-  const loadOrders = useCallback(async () => {
-    try {
-      setLoading(true)
-      
-      const queryParams: OrderQueryParams = {
-        ...baseParams,
-        limit: pagination.pageSize,
-        offset: pagination.pageIndex * pagination.pageSize,
-      }
-      
-      const response = await orderService.getOrders(queryParams)
-      
-      if (response.code === 0) {
-        setOrders(response.data || [])
-        setTotalItems(response.total || 0)
-      } else {
-        toast.error(response.message || '加载订单失败')
-        setOrders([])
-        setTotalItems(0)
-      }
-    } catch (error) {
-      console.error('加载订单失败:', error)
-      toast.error('加载订单失败，请重试')
-      setOrders([])
-      setTotalItems(0)
-    } finally {
-      setLoading(false)
-    }
-  }, [baseParams, pagination.pageIndex, pagination.pageSize])
+  // 使用 React Query hooks
+  const { 
+    data: ordersResponse, 
+    isLoading, 
+    error,
+    refetch
+  } = useOrders(queryParams)
 
+  // 取消订单 mutation
+  const cancelOrderMutation = useCancelOrder()
+
+  // 提取订单数据
+  const orders = ordersResponse?.data || []
+  const totalItems = ordersResponse?.total || 0
 
   // 处理分页变化
   const handlePaginationChange = useCallback((newPagination: typeof pagination) => {
@@ -81,34 +60,20 @@ export default function OrdersPage() {
 
   // 订单更新后的回调
   const handleOrderUpdated = useCallback(() => {
-    loadOrders()
-  }, [loadOrders])
+    refetch()
+  }, [refetch])
 
   // 取消订单
   const handleCancelOrder = useCallback(async (orderId: number) => {
     if (!confirm('确定要取消此订单吗？')) return
 
-    try {
-      const response = await orderService.cancelOrder(orderId, {
+    cancelOrderMutation.mutate({
+      id: orderId,
+      data: {
         reason: '管理员手动取消',
-      })
-      
-      if (response.code === 0) {
-        toast.success('订单已取消')
-        loadOrders()
-      } else {
-        toast.error(response.message || '取消订单失败')
       }
-    } catch (error) {
-      console.error('取消订单失败:', error)
-      toast.error('取消订单失败，请重试')
-    }
-  }, [loadOrders])
-
-  // 初始加载
-  useEffect(() => {
-    loadOrders()
-  }, [loadOrders])
+    })
+  }, [cancelOrderMutation])
 
   // 表格列定义
   const columns = createColumns({
@@ -152,6 +117,7 @@ export default function OrdersPage() {
             data={orders}
             searchKey="order_number"
             searchPlaceholder="搜索订单号..."
+            loading={isLoading}
           />
           
           {/* 自定义分页控制 */}
